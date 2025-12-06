@@ -274,15 +274,19 @@ struct CreateEventView: View {
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        viewModel.addEvent(
-            title: trimmedTitle,
-            emoji: selectedEmoji,
-            date: date,
-            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
-            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
-        )
-        
-        onClose()
+        do {
+            try viewModel.addEvent(
+                title: trimmedTitle,
+                emoji: selectedEmoji,
+                date: date,
+                location: trimmedLocation.isEmpty ? nil : trimmedLocation,
+                notes: trimmedNotes.isEmpty ? nil : trimmedNotes
+            )
+            viewModel.presentToast(message: "Event created successfully", style: .success)
+            onClose()
+        } catch {
+            viewModel.presentToast(message: "Failed to create event. Please try again.", style: .error)
+        }
     }
 }
 

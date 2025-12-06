@@ -9,6 +9,36 @@ import SwiftUI
 import SwiftData
 import Combine
 
+// MARK: - Toast Presentation Models
+enum ToastStyle {
+    case success
+    case error
+    
+    var background: Color {
+        switch self {
+        case .success:
+            return Color(red: 0.45, green: 0.40, blue: 0.95) // matches app purple gradient
+        case .error:
+            return Color(red: 0.82, green: 0.23, blue: 0.25)
+        }
+    }
+    
+    var iconName: String {
+        switch self {
+        case .success:
+            return "checkmark.circle.fill"
+        case .error:
+            return "xmark.octagon.fill"
+        }
+    }
+}
+
+struct ToastData: Identifiable {
+    let id = UUID()
+    let message: String
+    let style: ToastStyle
+}
+
 @MainActor
 final class EventListViewModel: ObservableObject {
     
@@ -18,6 +48,7 @@ final class EventListViewModel: ObservableObject {
     @Published var showingCreateEvent = false
     @Published var eventToDelete: Event?
     @Published var showingDeleteConfirmation = false
+    @Published var toast: ToastData?
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -63,6 +94,7 @@ final class EventListViewModel: ObservableObject {
     }
     
     /// Creates a new event
+    @discardableResult
     func addEvent(
         title: String,
         emoji: String,
@@ -70,7 +102,7 @@ final class EventListViewModel: ObservableObject {
         location: String? = nil,
         category: String? = nil,
         notes: String? = nil
-    ) {
+    ) throws -> Event {
         let event = Event(
             title: title,
             emoji: emoji,
@@ -84,8 +116,10 @@ final class EventListViewModel: ObservableObject {
         do {
             try modelContext.save()
             fetchEvents()
+            return event
         } catch {
             print("Failed to save event: \(error)")
+            throw error
         }
     }
     
@@ -115,6 +149,23 @@ final class EventListViewModel: ObservableObject {
     func cancelDelete() {
         eventToDelete = nil
         showingDeleteConfirmation = false
+    }
+    
+    /// Presents a toast message with auto dismissal
+    func presentToast(message: String, style: ToastStyle, duration: TimeInterval = 2.5) {
+        let toastData = ToastData(message: message, style: style)
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+            toast = toastData
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            guard let self else { return }
+            if self.toast?.id == toastData.id {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.toast = nil
+                }
+            }
+        }
     }
 }
 

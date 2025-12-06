@@ -65,6 +65,9 @@ struct HomeView: View {
                 }
             }
             .animation(.easeInOut, value: viewModel.showingCreateEvent)
+            .overlay(alignment: .top) {
+                toastOverlay
+            }
             .alert("Delete Event", isPresented: $viewModel.showingDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {
                     viewModel.cancelDelete()
@@ -82,6 +85,19 @@ struct HomeView: View {
                 viewModel.fetchEvents()
             }
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+    
+    // MARK: - Toast Overlay
+    private var toastOverlay: some View {
+        Group {
+            if let toast = viewModel.toast {
+                ToastBannerView(toast: toast)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(2)
+            }
         }
     }
     
@@ -174,6 +190,33 @@ struct HomeView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+}
+
+// MARK: - Toast View
+private struct ToastBannerView: View {
+    let toast: ToastData
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: toast.style.iconName)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.white)
+            
+            Text(toast.message)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(toast.style.background.opacity(0.95))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: Color.black.opacity(0.15), radius: 10, y: 6)
+        .frame(maxWidth: 540)
     }
 }
 
