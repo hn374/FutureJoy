@@ -52,7 +52,7 @@ struct CreateEventView: View {
                             iconField(
                                 title: "Event Name",
                                 placeholder: "Birthday Party",
-                                systemImage: "text.cursor",
+                                systemImage: nil,
                                 text: $title,
                                 required: true
                             )
@@ -111,7 +111,7 @@ struct CreateEventView: View {
     }
     
     // MARK: - Fields
-    private func iconField(title: String, placeholder: String, systemImage: String, text: Binding<String>, required: Bool) -> some View {
+    private func iconField(title: String, placeholder: String, systemImage: String?, text: Binding<String>, required: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Text(title)
@@ -122,9 +122,11 @@ struct CreateEventView: View {
                 }
             }
             
-            HStack(spacing: 10) {
-                Image(systemName: systemImage)
-                    .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.6))
+            HStack(spacing: systemImage == nil ? 0 : 10) {
+                if let systemImage {
+                    Image(systemName: systemImage)
+                        .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.6))
+                }
                 TextField(placeholder, text: text)
                     .font(.system(size: 16))
             }
