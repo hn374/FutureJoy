@@ -17,68 +17,71 @@ struct HomeView: View {
     }
     
     var body: some View {
-        ZStack {
-            // Background
-            Color(red: 0.97, green: 0.97, blue: 0.98)
-                .ignoresSafeArea()
-            
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Header with gradient
-                    headerView
-                    
-                    // Content
-                    VStack(spacing: 16) {
-                        // Add New Event Button
-                        addEventButton
-                            .padding(.top, 24)
+        NavigationStack {
+            ZStack {
+                // Background
+                Color(red: 0.97, green: 0.97, blue: 0.98)
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Header with gradient
+                        headerView
                         
-                        // Event List
-                        eventList
-                            .padding(.top, 8)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
-                }
-            }
-            .ignoresSafeArea(edges: .top)
-        }
-        .overlay(alignment: .center) {
-            if viewModel.showingCreateEvent {
-                ZStack {
-                    Color.black.opacity(0.35)
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            viewModel.showingCreateEvent = false
+                        // Content
+                        VStack(spacing: 16) {
+                            // Add New Event Button
+                            addEventButton
+                                .padding(.top, 24)
+                            
+                            // Event List
+                            eventList
+                                .padding(.top, 8)
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
+                    }
+                }
+                .ignoresSafeArea(edges: .top)
+            }
+            .overlay(alignment: .center) {
+                if viewModel.showingCreateEvent {
+                    ZStack {
+                        Color.black.opacity(0.35)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                viewModel.showingCreateEvent = false
+                            }
 
-                    CreateEventView(
-                        viewModel: viewModel,
-                        onClose: { viewModel.showingCreateEvent = false }
-                    )
-                    .frame(maxWidth: 540)
-                    .padding(.horizontal, 24)
-                    .transition(.scale)
-                    .zIndex(1)
+                        CreateEventView(
+                            viewModel: viewModel,
+                            onClose: { viewModel.showingCreateEvent = false }
+                        )
+                        .frame(maxWidth: 540)
+                        .padding(.horizontal, 24)
+                        .transition(.scale)
+                        .zIndex(1)
+                    }
                 }
             }
-        }
-        .animation(.easeInOut, value: viewModel.showingCreateEvent)
-        .alert("Delete Event", isPresented: $viewModel.showingDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {
-                viewModel.cancelDelete()
+            .animation(.easeInOut, value: viewModel.showingCreateEvent)
+            .alert("Delete Event", isPresented: $viewModel.showingDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
+                    viewModel.cancelDelete()
+                }
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteConfirmedEvent()
+                }
+            } message: {
+                if let event = viewModel.eventToDelete {
+                    Text("Are you sure you want to delete \"\(event.title)\"? This action cannot be undone.")
+                }
             }
-            Button("Delete", role: .destructive) {
-                viewModel.deleteConfirmedEvent()
+            .onAppear {
+                viewModel.archivePastEvents()
+                viewModel.fetchEvents()
             }
-        } message: {
-            if let event = viewModel.eventToDelete {
-                Text("Are you sure you want to delete \"\(event.title)\"? This action cannot be undone.")
-            }
-        }
-        .onAppear {
-            viewModel.archivePastEvents()
-            viewModel.fetchEvents()
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
     
@@ -161,9 +164,14 @@ struct HomeView: View {
     private var eventList: some View {
         LazyVStack(spacing: 16) {
             ForEach(viewModel.events) { event in
-                EventRowView(event: event) {
-                    viewModel.confirmDelete(event)
+                NavigationLink {
+                    EventDetailView(event: event)
+                } label: {
+                    EventRowView(event: event) {
+                        viewModel.confirmDelete(event)
+                    }
                 }
+                .buttonStyle(.plain)
             }
         }
     }
