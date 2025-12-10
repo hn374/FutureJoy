@@ -48,7 +48,11 @@ final class EventListViewModel: ObservableObject {
     @Published var showingCreateEvent = false
     @Published var eventToDelete: Event?
     @Published var showingDeleteConfirmation = false
+    @Published var isSelectionMode = false
+    @Published var selectedEventIDs: Set<UUID> = []
     @Published var toast: ToastData?
+    
+    private var isBulkDeletePending = false
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
@@ -125,12 +129,62 @@ final class EventListViewModel: ObservableObject {
     
     /// Prepares to delete an event (shows confirmation)
     func confirmDelete(_ event: Event) {
+        guard isSelectionMode == false else { return }
         eventToDelete = event
+        showingDeleteConfirmation = true
+    }
+    
+    /// Starts multi-select mode
+    func enterSelectionMode() {
+        isSelectionMode = true
+        selectedEventIDs.removeAll()
+        eventToDelete = nil
+        showingDeleteConfirmation = false
+        isBulkDeletePending = false
+    }
+    
+    /// Exits multi-select mode and clears selection
+    func exitSelectionMode() {
+        isSelectionMode = false
+        selectedEventIDs.removeAll()
+        isBulkDeletePending = false
+    }
+    
+    /// Toggles selection state for an event
+    func toggleSelection(for event: Event) {
+        if selectedEventIDs.contains(event.id) {
+            selectedEventIDs.remove(event.id)
+        } else {
+            selectedEventIDs.insert(event.id)
+        }
+    }
+    
+    /// Returns whether an event is currently selected
+    func isSelected(_ event: Event) -> Bool {
+        selectedEventIDs.contains(event.id)
+    }
+    
+    /// Requests confirmation to delete selected events
+    func confirmDeleteSelected() {
+        guard isSelectionMode else { return }
+        guard selectedEventIDs.isEmpty == false else {
+            presentToast(message: "Select events to delete", style: .error)
+            return
+        }
+        
+        isBulkDeletePending = true
         showingDeleteConfirmation = true
     }
     
     /// Deletes the selected event after confirmation
     func deleteConfirmedEvent() {
+        if isBulkDeletePending {
+            deleteSelectedEvents()
+            isBulkDeletePending = false
+            showingDeleteConfirmation = false
+            return
+        }
+        
         guard let event = eventToDelete else { return }
         
         modelContext.delete(event)
@@ -148,10 +202,31 @@ final class EventListViewModel: ObservableObject {
         showingDeleteConfirmation = false
     }
     
+    /// Deletes all selected events
+    private func deleteSelectedEvents() {
+        let ids = selectedEventIDs
+        guard ids.isEmpty == false else { return }
+        
+        events
+            .filter { ids.contains($0.id) }
+            .forEach { modelContext.delete($0) }
+        
+        do {
+            try modelContext.save()
+            fetchEvents()
+            presentToast(message: "Events deleted", style: .success)
+            exitSelectionMode()
+        } catch {
+            print("Failed to delete selected events: \(error)")
+            presentToast(message: "Could not delete selected events. Please try again.", style: .error)
+        }
+    }
+    
     /// Cancels the delete operation
     func cancelDelete() {
         eventToDelete = nil
         showingDeleteConfirmation = false
+        isBulkDeletePending = false
     }
     
     /// Presents a toast message with auto dismissal

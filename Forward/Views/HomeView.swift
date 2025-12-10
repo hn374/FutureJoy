@@ -76,7 +76,9 @@ struct HomeView: View {
                     viewModel.deleteConfirmedEvent()
                 }
             } message: {
-                if let event = viewModel.eventToDelete {
+                if viewModel.isSelectionMode, !viewModel.selectedEventIDs.isEmpty {
+                    Text("Delete \(viewModel.selectedEventIDs.count) selected event(s)? This action cannot be undone.")
+                } else if let event = viewModel.eventToDelete {
                     Text("Are you sure you want to delete \"\(event.title)\"? This action cannot be undone.")
                 }
             }
@@ -115,7 +117,7 @@ struct HomeView: View {
             )
             
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
                     // Calendar icon
                     ZStack {
                         RoundedRectangle(cornerRadius: 12)
@@ -130,11 +132,64 @@ struct HomeView: View {
                     Text("FutureJoy")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .layoutPriority(1)
+                    
+                    Spacer()
+                    
+                    if viewModel.isSelectionMode {
+                        HStack(alignment: .center, spacing: 8) {
+                            Button {
+                                viewModel.confirmDeleteSelected()
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.18))
+                                    .clipShape(Circle())
+                            }
+                            .disabled(viewModel.selectedEventIDs.isEmpty)
+                            .opacity(viewModel.selectedEventIDs.isEmpty ? 0.6 : 1)
+                            
+                            Button("Cancel") {
+                                viewModel.exitSelectionMode()
+                            }
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.white.opacity(0.18))
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .padding(.trailing, 4)
+                    } else {
+                        Button("Select") {
+                            viewModel.enterSelectionMode()
+                        }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(Capsule())
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    }
                 }
                 
-                Text("Track your upcoming events")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.9))
+                if viewModel.isSelectionMode {
+                    Text("\(viewModel.selectedEventIDs.count) selected")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                } else {
+                    Text("Track your upcoming events")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
@@ -180,14 +235,29 @@ struct HomeView: View {
     private var eventList: some View {
         LazyVStack(spacing: 16) {
             ForEach(viewModel.events) { event in
-                NavigationLink {
-                    EventDetailView(event: event)
-                } label: {
-                    EventRowView(event: event) {
-                        viewModel.confirmDelete(event)
+                if viewModel.isSelectionMode {
+                    EventRowView(
+                        event: event,
+                        onDelete: {},
+                        selectionMode: true,
+                        isSelected: viewModel.isSelected(event),
+                        onToggleSelection: {
+                            viewModel.toggleSelection(for: event)
+                        }
+                    )
+                    .onTapGesture {
+                        viewModel.toggleSelection(for: event)
                     }
+                } else {
+                    NavigationLink {
+                        EventDetailView(event: event)
+                    } label: {
+                        EventRowView(event: event) {
+                            viewModel.confirmDelete(event)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }

@@ -10,6 +10,23 @@ import SwiftUI
 struct EventRowView: View {
     let event: Event
     let onDelete: () -> Void
+    let selectionMode: Bool
+    let isSelected: Bool
+    let onToggleSelection: () -> Void
+    
+    init(
+        event: Event,
+        onDelete: @escaping () -> Void,
+        selectionMode: Bool = false,
+        isSelected: Bool = false,
+        onToggleSelection: @escaping () -> Void = {}
+    ) {
+        self.event = event
+        self.onDelete = onDelete
+        self.selectionMode = selectionMode
+        self.isSelected = isSelected
+        self.onToggleSelection = onToggleSelection
+    }
     
     private var formattedDate: String {
         let formatter = DateFormatter()
@@ -19,7 +36,7 @@ struct EventRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Top row: Emoji + Title + Delete button
+            // Top row: Emoji + Title + Delete / Select button
             HStack(alignment: .top) {
                 HStack(spacing: 8) {
                     Text(event.emoji)
@@ -32,12 +49,16 @@ struct EventRowView: View {
                 
                 Spacer()
                 
-                Button {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 18))
-                        .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.75))
+                if selectionMode {
+                    selectionCheckbox
+                } else {
+                    Button {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 18))
+                            .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.75))
+                    }
                 }
             }
             
@@ -69,11 +90,56 @@ struct EventRowView: View {
         .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    Color(red: 0.65, green: 0.60, blue: 0.95).opacity(0.6),
-                    lineWidth: 1.25
+                .strokeBorder(
+                    selectionMode
+                    ? (isSelected ? Color(red: 0.35, green: 0.45, blue: 0.95) : Color(red: 0.65, green: 0.60, blue: 0.95).opacity(0.35))
+                    : Color(red: 0.65, green: 0.60, blue: 0.95).opacity(0.6),
+                    lineWidth: isSelected ? 2 : 1.25
                 )
         )
+        .contentShape(Rectangle())
+    }
+    
+    // MARK: - Selection Checkbox
+    private var selectionCheckbox: some View {
+        Button {
+            onToggleSelection()
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(red: 0.7, green: 0.7, blue: 0.75), lineWidth: 1.5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                isSelected
+                                ? LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color(red: 0.35, green: 0.45, blue: 0.95),
+                                        Color(red: 0.55, green: 0.35, blue: 0.92)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                : LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.white,
+                                        Color.white
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+                    .frame(width: 26, height: 26)
+                
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Days Counter Badge
@@ -125,4 +191,3 @@ struct EventRowView: View {
     .padding()
     .background(Color(red: 0.97, green: 0.97, blue: 0.98))
 }
-
