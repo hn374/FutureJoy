@@ -27,6 +27,8 @@
 		B71510F12EE3C07900D111CA /* Forward.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Forward.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B71511022EE3C07900D111CA /* ForwardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForwardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B715110C2EE3C07900D111CA /* ForwardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ForwardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B715115A2EE915A000D111CA /* Forward Dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Forward Dev.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B715115B2EE915A000D111CA /* Forward copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "Forward copy-Info.plist"; path = "/Users/hoangnguyen/Desktop/Programming/Forward/Forward/Forward copy-Info.plist"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -37,6 +39,22 @@
 			);
 			target = B71510F02EE3C07900D111CA /* Forward */;
 		};
+		B715115C2EE915A000D111CA /* Exceptions for "Forward" folder in "Forward Dev" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Assets.xcassets,
+				FutureJoyApp.swift,
+				Info.plist,
+				Models/Event.swift,
+				tech_design.md,
+				ViewModels/EventListViewModel.swift,
+				Views/CreateEventView.swift,
+				Views/EventDetailView.swift,
+				Views/EventRowView.swift,
+				Views/HomeView.swift,
+			);
+			target = B71511532EE915A000D111CA /* Forward Dev */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -44,6 +62,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B71511142EE3C07900D111CA /* Exceptions for "Forward" folder in "Forward" target */,
+				B715115C2EE915A000D111CA /* Exceptions for "Forward" folder in "Forward Dev" target */,
 			);
 			path = Forward;
 			sourceTree = "<group>";
@@ -82,6 +101,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B71511552EE915A000D111CA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -91,6 +117,7 @@
 				B71510F32EE3C07900D111CA /* Forward */,
 				B71511052EE3C07900D111CA /* ForwardTests */,
 				B715110F2EE3C07900D111CA /* ForwardUITests */,
+				B715115B2EE915A000D111CA /* Forward copy-Info.plist */,
 				B71510F22EE3C07900D111CA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,6 +128,7 @@
 				B71510F12EE3C07900D111CA /* Forward.app */,
 				B71511022EE3C07900D111CA /* ForwardTests.xctest */,
 				B715110C2EE3C07900D111CA /* ForwardUITests.xctest */,
+				B715115A2EE915A000D111CA /* Forward Dev.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -176,6 +204,28 @@
 			productReference = B715110C2EE3C07900D111CA /* ForwardUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		B71511532EE915A000D111CA /* Forward Dev */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B71511572EE915A000D111CA /* Build configuration list for PBXNativeTarget "Forward Dev" */;
+			buildPhases = (
+				B71511542EE915A000D111CA /* Sources */,
+				B71511552EE915A000D111CA /* Frameworks */,
+				B71511562EE915A000D111CA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B71510F32EE3C07900D111CA /* Forward */,
+			);
+			name = "Forward Dev";
+			packageProductDependencies = (
+			);
+			productName = Forward;
+			productReference = B715115A2EE915A000D111CA /* Forward Dev.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -216,6 +266,7 @@
 				B71510F02EE3C07900D111CA /* Forward */,
 				B71511012EE3C07900D111CA /* ForwardTests */,
 				B715110B2EE3C07900D111CA /* ForwardUITests */,
+				B71511532EE915A000D111CA /* Forward Dev */,
 			);
 		};
 /* End PBXProject section */
@@ -236,6 +287,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		B715110A2EE3C07900D111CA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B71511562EE915A000D111CA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -266,6 +324,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B71511542EE915A000D111CA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -290,6 +355,7 @@
 				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84VP9GYA85;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Forward/Info.plist;
@@ -323,6 +389,7 @@
 				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84VP9GYA85;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Forward/Info.plist;
@@ -547,6 +614,74 @@
 			};
 			name = Release;
 		};
+		B71511582EE915A000D111CA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84VP9GYA85;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Forward copy-Info.plist";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Hoang.Forward.Dev;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B71511592EE915A000D111CA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Forward/Forward.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 84VP9GYA85;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Forward copy-Info.plist";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = Hoang.Forward.Dev;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -582,6 +717,15 @@
 			buildConfigurations = (
 				B715111E2EE3C07900D111CA /* Debug */,
 				B715111F2EE3C07900D111CA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B71511572EE915A000D111CA /* Build configuration list for PBXNativeTarget "Forward Dev" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B71511582EE915A000D111CA /* Debug */,
+				B71511592EE915A000D111CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
