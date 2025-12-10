@@ -138,11 +138,14 @@ final class EventListViewModel: ObservableObject {
         do {
             try modelContext.save()
             fetchEvents()
+            presentToast(message: "Event deleted", style: .success)
         } catch {
             print("Failed to delete event: \(error)")
+            presentToast(message: "Could not delete event. Please try again.", style: .error)
         }
         
         eventToDelete = nil
+        showingDeleteConfirmation = false
     }
     
     /// Cancels the delete operation
