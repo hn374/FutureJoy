@@ -88,6 +88,7 @@ struct CreateEventView: View {
             .padding(.vertical, 12)
         }
         .presentationBackground(.clear)
+        .preferredColorScheme(.light)
     }
     
     // MARK: - Header
