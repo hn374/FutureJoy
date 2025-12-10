@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct CreateEventView: View {
     @ObservedObject var viewModel: EventListViewModel
@@ -14,6 +15,7 @@ struct CreateEventView: View {
     @State private var title: String = ""
     @State private var selectedEmoji: String = "🎉"
     @State private var date: Date = Date()
+    @State private var datePickerID = UUID()
     @State private var location: String = ""
     @State private var notes: String = ""
     
@@ -160,8 +162,14 @@ struct CreateEventView: View {
                     in: Date()...,
                     displayedComponents: [.date]
                 )
+                .id(datePickerID)
                 .labelsHidden()
                 .tint(Color(red: 0.45, green: 0.40, blue: 0.95))
+                .datePickerStyle(.compact)
+                .onChange(of: date) { _ in
+                    dismissDatePicker()
+                    datePickerID = UUID() // force rebuild to close popover
+                }
             }
             .padding()
             .frame(maxWidth: .infinity)
@@ -172,6 +180,15 @@ struct CreateEventView: View {
                     .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
             )
         }
+    }
+    
+    private func dismissDatePicker() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
     
     private var notesField: some View {
