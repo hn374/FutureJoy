@@ -279,29 +279,33 @@ struct HomeView: View {
     // MARK: - Event List
     private var eventList: some View {
         LazyVStack(spacing: 16) {
-            ForEach(viewModel.events) { event in
-                if viewModel.isSelectionMode {
-                    EventRowView(
-                        event: event,
-                        onDelete: {},
-                        selectionMode: true,
-                        isSelected: viewModel.isSelected(event),
-                        onToggleSelection: {
+            if viewModel.filter == .past && viewModel.events.isEmpty {
+                emptyPastState
+            } else {
+                ForEach(viewModel.events) { event in
+                    if viewModel.isSelectionMode {
+                        EventRowView(
+                            event: event,
+                            onDelete: {},
+                            selectionMode: true,
+                            isSelected: viewModel.isSelected(event),
+                            onToggleSelection: {
+                                viewModel.toggleSelection(for: event)
+                            }
+                        )
+                        .onTapGesture {
                             viewModel.toggleSelection(for: event)
                         }
-                    )
-                    .onTapGesture {
-                        viewModel.toggleSelection(for: event)
-                    }
-                } else {
-                    NavigationLink {
-                        EventDetailView(event: event)
-                    } label: {
-                        EventRowView(event: event) {
-                            viewModel.confirmDelete(event)
+                    } else {
+                        NavigationLink {
+                            EventDetailView(event: event)
+                        } label: {
+                            EventRowView(event: event) {
+                                viewModel.confirmDelete(event)
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -332,6 +336,38 @@ private struct ToastBannerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .shadow(color: Color.black.opacity(0.15), radius: 10, y: 6)
         .frame(maxWidth: 540)
+    }
+}
+
+// MARK: - Empty States
+private extension HomeView {
+    var emptyPastState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 46, weight: .semibold))
+                .foregroundColor(Color(red: 0.45, green: 0.40, blue: 0.95).opacity(0.8))
+            
+            Text("No past events yet")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+            
+            Text("Finished events will show up here after their date has passed.")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity, minHeight: 220)
+        .padding(20)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(
+                    Color(red: 0.65, green: 0.60, blue: 0.95).opacity(0.8),
+                    lineWidth: 1.25
+                )
+        )
     }
 }
 
