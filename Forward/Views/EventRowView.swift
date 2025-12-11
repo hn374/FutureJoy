@@ -85,7 +85,6 @@ struct EventRowView: View {
                     }
                 }
                 
-                Spacer(minLength: 0)
             }
             .frame(maxHeight: .infinity, alignment: .center)
         }
