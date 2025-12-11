@@ -109,6 +109,20 @@ struct EventDetailView: View {
         } message: {
             Text(alertMessage ?? "")
         }
+        // Provide a custom right-swipe-from-edge gesture to dismiss when the
+        // system interactive pop is unavailable (e.g. custom navigation bar).
+        .highPriorityGesture(
+            DragGesture()
+                .onEnded { value in
+                    let isFromLeftEdge = value.startLocation.x < 30
+                    let isRightward = value.translation.width > 60
+                    let isMostlyHorizontal = abs(value.translation.height) < 40
+                    
+                    if isFromLeftEdge && isRightward && isMostlyHorizontal {
+                        dismiss()
+                    }
+                }
+        )
     }
     
     // MARK: - Header
