@@ -127,38 +127,41 @@ struct HomeView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 ZStack {
-                    // Centered title menu (dropdown anchored to title)
-                    Menu {
-                        Button {
-                            viewModel.setFilter(.future)
-                        } label: {
-                            Text(viewModel.filter == .future ? "Future ✓" : "Future")
-                        }
-                        
-                        Button {
-                            viewModel.setFilter(.past)
-                        } label: {
-                            Text(viewModel.filter == .past ? "Past ✓" : "Past")
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(viewModel.filter == .future ? "FutureJoy" : "PastJoy")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                                .layoutPriority(1)
-                                .frame(minWidth: 110, alignment: .center)
+                    // Centered title menu (hidden in selection mode to avoid overlap)
+                    if viewModel.isSelectionMode == false {
+                        Menu {
+                            Button {
+                                viewModel.setFilter(.future)
+                            } label: {
+                                Text(viewModel.filter == .future ? "Future ✓" : "Future")
+                            }
                             
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.9))
-                                .padding(.top, 0)
+                            Button {
+                                viewModel.setFilter(.past)
+                            } label: {
+                                Text(viewModel.filter == .past ? "Past ✓" : "Past")
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(viewModel.filter == .future ? "FutureJoy" : "PastJoy")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.85)
+                                    .layoutPriority(1)
+                                    .frame(minWidth: 110, alignment: .center)
+                                
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .padding(.top, 0)
+                            }
+                            .frame(width: 140, alignment: .center)
+                            .animation(.none, value: viewModel.filter)
                         }
-                        .frame(width: 140, alignment: .center)
-                        .animation(.none, value: viewModel.filter)
+                        .menuStyle(.button)
+                        .transition(.opacity)
                     }
-                    .menuStyle(.button)
                     
                     // Leading/trailing controls
                     HStack(alignment: .center, spacing: 12) {
