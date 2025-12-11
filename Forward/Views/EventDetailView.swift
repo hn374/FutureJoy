@@ -430,7 +430,10 @@ struct EventDetailView: View {
         .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(Color(red: 0.92, green: 0.92, blue: 0.94), lineWidth: 1)
+                .stroke(
+                    Color(red: 0.65, green: 0.60, blue: 0.95).opacity(0.8),
+                    lineWidth: 1.25
+                )
         )
     }
     
