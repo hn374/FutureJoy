@@ -73,7 +73,7 @@ struct HomeView: View {
                 }
             }
             .animation(.easeInOut, value: viewModel.showingCreateEvent)
-            .overlay(alignment: .top) {
+            .overlay(alignment: .bottom) {
                 toastOverlay
             }
             .alert("Delete Event", isPresented: $viewModel.showingDeleteConfirmation) {
@@ -104,8 +104,8 @@ struct HomeView: View {
             if let toast = viewModel.toast {
                 ToastBannerView(toast: toast)
                     .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.bottom, 28)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                     .zIndex(2)
             }
         }
