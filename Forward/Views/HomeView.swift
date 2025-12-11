@@ -34,7 +34,6 @@ struct HomeView: View {
                             
                             // Add New Event Button
                             addEventButton
-                                .padding(.top, 16)
                             
                             // Event List
                             eventList
