@@ -139,19 +139,22 @@ struct HomeView: View {
                             Text(viewModel.filter == .past ? "Past ✓" : "Past")
                         }
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 4) {
                             Text(viewModel.filter == .future ? "FutureJoy" : "PastJoy")
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.85)
                                 .layoutPriority(1)
+                                .frame(minWidth: 110, alignment: .center)
                             
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.9))
-                                .padding(.top, 4)
+                                .padding(.top, 0)
                         }
+                        .frame(width: 140, alignment: .center)
+                        .animation(.none, value: viewModel.filter)
                     }
                     .menuStyle(.button)
                     
