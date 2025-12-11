@@ -32,8 +32,10 @@ struct HomeView: View {
                                 .frame(height: headerHeight + 12)
                                 .id(topAnchorID)
                             
-                            // Add New Event Button
-                            addEventButton
+                            // Add New Event Button (future events only)
+                            if viewModel.filter == .future {
+                                addEventButton
+                            }
                             
                             // Event List
                             eventList
