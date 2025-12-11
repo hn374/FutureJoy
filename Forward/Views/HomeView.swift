@@ -11,6 +11,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: EventListViewModel
+    private let headerHeight: CGFloat = 160
     
     init(modelContext: ModelContext) {
         _viewModel = StateObject(wrappedValue: EventListViewModel(modelContext: modelContext))
@@ -18,31 +19,32 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .top) {
                 // Background
                 Color(red: 0.97, green: 0.97, blue: 0.98)
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 0) {
-                        // Header with gradient
-                        headerView
+                    VStack(spacing: 16) {
+                        // Add New Event Button
+                        addEventButton
+                            .padding(.top, 16)
                         
-                        // Content
-                        VStack(spacing: 16) {
-                            // Add New Event Button
-                            addEventButton
-                                .padding(.top, 24)
-                            
-                            // Event List
-                            eventList
-                                .padding(.top, 8)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 32)
+                        // Event List
+                        eventList
+                            .padding(.top, 8)
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, headerHeight + 12)
+                    .padding(.bottom, 32)
                 }
                 .ignoresSafeArea(edges: .top)
+                
+                // Fixed header
+                headerView
+                    .frame(maxWidth: .infinity)
+                    .frame(height: headerHeight)
+                    .ignoresSafeArea(edges: .top)
             }
             .overlay(alignment: .center) {
                 if viewModel.showingCreateEvent {
@@ -186,7 +188,7 @@ struct HomeView: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 } else {
-                    Text("Track your upcoming events")
+                    Text("Track events you're looking forward to!")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 }
