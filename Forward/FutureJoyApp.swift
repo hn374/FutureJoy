@@ -37,6 +37,7 @@ struct FutureJoyApp: App {
     var body: some Scene {
         WindowGroup {
             HomeView(modelContext: sharedModelContainer.mainContext)
+                .preferredColorScheme(.light)
         }
         .modelContainer(sharedModelContainer)
     }
