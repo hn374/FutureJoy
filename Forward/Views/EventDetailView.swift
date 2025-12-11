@@ -18,6 +18,8 @@ struct EventDetailView: View {
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     @State private var isEditing = false
+    @State private var editedTitle: String
+    @State private var editedEmoji: String
     @State private var editedDate: Date
     @State private var editedLocation: String
     @State private var editedNotes: String
@@ -25,6 +27,8 @@ struct EventDetailView: View {
     
     init(event: Event) {
         self.event = event
+        _editedTitle = State(initialValue: event.title)
+        _editedEmoji = State(initialValue: event.emoji)
         _editedDate = State(initialValue: event.date)
         _editedLocation = State(initialValue: event.location ?? "")
         _editedNotes = State(initialValue: event.notes ?? "")
@@ -60,6 +64,7 @@ struct EventDetailView: View {
                     headerSection
                     
                     VStack(spacing: 16) {
+                        detailsCard
                         dateCard
                         locationCard
                         notesCard
@@ -233,6 +238,62 @@ struct EventDetailView: View {
     }
     
     // MARK: - Info Cards
+    private var detailsCard: some View {
+        infoCard(
+            title: "Event",
+            systemImage: "sparkles",
+            iconColor: Color(red: 0.32, green: 0.55, blue: 1.0)
+        ) {
+            if isEditing {
+                VStack(alignment: .leading, spacing: 10) {
+                    TextField("Event name", text: $editedTitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .padding(12)
+                        .background(Color(red: 0.97, green: 0.97, blue: 0.99))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
+                        )
+                        .textInputAutocapitalization(.words)
+                    
+                    HStack(spacing: 12) {
+                        TextField("Emoji", text: $editedEmoji)
+                            .font(.system(size: 22))
+                            .frame(width: 64)
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 12)
+                            .background(Color(red: 0.97, green: 0.97, blue: 0.99))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
+                            )
+                            .multilineTextAlignment(.center)
+                            .onChange(of: editedEmoji) { newValue in
+                                let limited = String(newValue.prefix(2))
+                                if limited != newValue {
+                                    editedEmoji = limited
+                                }
+                            }
+                        
+                        Text("Pick an emoji")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
+                    }
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Text(event.emoji)
+                        .font(.system(size: 22))
+                    Text(event.title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+                }
+            }
+        }
+    }
+    
     private var dateCard: some View {
         infoCard(
             title: "Date",
@@ -402,6 +463,8 @@ struct EventDetailView: View {
     
     private func resetEdits() {
         editedDate = event.date
+        editedTitle = event.title
+        editedEmoji = event.emoji
         editedLocation = event.location ?? ""
         editedNotes = event.notes ?? ""
     }
@@ -412,9 +475,23 @@ struct EventDetailView: View {
             return
         }
         
+        let trimmedTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmoji = editedEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLocation = editedLocation.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         
+        guard trimmedTitle.isEmpty == false else {
+            alertMessage = "Event name cannot be empty."
+            return
+        }
+        
+        guard trimmedEmoji.isEmpty == false else {
+            alertMessage = "Please add an emoji."
+            return
+        }
+        
+        event.title = trimmedTitle
+        event.emoji = trimmedEmoji
         event.date = editedDate
         event.location = trimmedLocation.isEmpty ? nil : trimmedLocation
         event.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
