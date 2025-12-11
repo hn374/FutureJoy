@@ -101,16 +101,16 @@ struct EventDetailView: View {
         Button {
             dismiss()
         } label: {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.9))
-                    .frame(width: 36, height: 36)
-                
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(red: 0.32, green: 0.32, blue: 0.38))
-            }
+            Circle()
+                .fill(Color.white.opacity(0.16))
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.32, green: 0.32, blue: 0.38))
+                )
         }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Countdown
