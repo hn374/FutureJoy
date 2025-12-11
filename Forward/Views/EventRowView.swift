@@ -39,9 +39,9 @@ struct EventRowView: View {
             daysCounterBadge
                 .frame(width: 100, height: 100, alignment: .center)
             
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 // Top row: Emoji + Title + Delete / Select button
-                HStack(alignment: .top) {
+                HStack(alignment: .center) {
                     HStack(spacing: 8) {
                         Text(event.emoji)
                             .font(.system(size: 24))
@@ -87,7 +87,7 @@ struct EventRowView: View {
                 
                 Spacer(minLength: 0)
             }
-            .frame(maxHeight: .infinity, alignment: .top)
+            .frame(maxHeight: .infinity, alignment: .center)
         }
         .padding(20)
         .background(Color.white)
