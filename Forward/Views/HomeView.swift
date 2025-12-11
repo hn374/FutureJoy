@@ -124,51 +124,90 @@ struct HomeView: View {
             )
             
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center, spacing: 12) {
-                    // Calendar icon
-                    Button {
-                        withAnimation(.easeInOut) {
-                            scrollProxy.scrollTo(topAnchorID, anchor: .top)
+                ZStack {
+                    // Centered title menu (dropdown anchored to title)
+                    Menu {
+                        Button {
+                            viewModel.setFilter(.future)
+                        } label: {
+                            Text(viewModel.filter == .future ? "Future ✓" : "Future")
+                        }
+                        
+                        Button {
+                            viewModel.setFilter(.past)
+                        } label: {
+                            Text(viewModel.filter == .past ? "Past ✓" : "Past")
                         }
                     } label: {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white.opacity(0.25))
-                                .frame(width: 48, height: 48)
-                            
-                            Image(systemName: "calendar")
-                                .font(.system(size: 22, weight: .medium))
+                        HStack(spacing: 8) {
+                            Text(viewModel.filter == .future ? "FutureJoy" : "PastJoy")
+                                .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                                .layoutPriority(1)
+                            
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.9))
+                                .padding(.top, 4)
                         }
                     }
-                    .buttonStyle(.plain)
+                    .menuStyle(.button)
                     
-                    Text("FutureJoy")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-                        .layoutPriority(1)
-                    
-                    Spacer()
-                    
-                    if viewModel.isSelectionMode {
-                        HStack(alignment: .center, spacing: 8) {
-                            Button {
-                                viewModel.confirmDeleteSelected()
-                            } label: {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .padding(8)
-                                    .background(Color.white.opacity(0.18))
-                                    .clipShape(Circle())
+                    // Leading/trailing controls
+                    HStack(alignment: .center, spacing: 12) {
+                        // Calendar icon
+                        Button {
+                            withAnimation(.easeInOut) {
+                                scrollProxy.scrollTo(topAnchorID, anchor: .top)
                             }
-                            .disabled(viewModel.selectedEventIDs.isEmpty)
-                            .opacity(viewModel.selectedEventIDs.isEmpty ? 0.6 : 1)
-                            
-                            Button("Cancel") {
-                                viewModel.exitSelectionMode()
+                        } label: {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white.opacity(0.25))
+                                    .frame(width: 48, height: 48)
+                                
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 22, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Spacer()
+                        
+                        if viewModel.isSelectionMode {
+                            HStack(alignment: .center, spacing: 8) {
+                                Button {
+                                    viewModel.confirmDeleteSelected()
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(8)
+                                        .background(Color.white.opacity(0.18))
+                                        .clipShape(Circle())
+                                }
+                                .disabled(viewModel.selectedEventIDs.isEmpty)
+                                .opacity(viewModel.selectedEventIDs.isEmpty ? 0.6 : 1)
+                                
+                                Button("Cancel") {
+                                    viewModel.exitSelectionMode()
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.white.opacity(0.18))
+                                .clipShape(Capsule())
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                            }
+                            .padding(.trailing, 4)
+                        } else {
+                            Button("Select") {
+                                viewModel.enterSelectionMode()
                             }
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
@@ -179,19 +218,6 @@ struct HomeView: View {
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
                         }
-                        .padding(.trailing, 4)
-                    } else {
-                        Button("Select") {
-                            viewModel.enterSelectionMode()
-                        }
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color.white.opacity(0.18))
-                        .clipShape(Capsule())
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
                     }
                 }
                 
@@ -200,7 +226,7 @@ struct HomeView: View {
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 } else {
-                    Text("Track events you're looking forward to!")
+                    Text(viewModel.filter == .future ? "Track events you're looking forward to!" : "Review events you've already enjoyed.")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white.opacity(0.9))
                 }

@@ -39,12 +39,40 @@ struct ToastData: Identifiable {
     let style: ToastStyle
 }
 
+// MARK: - List Filter
+enum EventListFilter: String, CaseIterable {
+    case future
+    case past
+    
+    var title: String {
+        switch self {
+        case .future: return "Future"
+        case .past: return "Past"
+        }
+    }
+    
+    var isArchived: Bool {
+        switch self {
+        case .future: return false
+        case .past: return true
+        }
+    }
+    
+    var sortOrder: SortOrder {
+        switch self {
+        case .future: return .forward
+        case .past: return .reverse
+        }
+    }
+}
+
 @MainActor
 final class EventListViewModel: ObservableObject {
     
     private var modelContext: ModelContext
     
     @Published var events: [Event] = []
+    @Published var filter: EventListFilter = .future
     @Published var showingCreateEvent = false
     @Published var eventToDelete: Event?
     @Published var showingDeleteConfirmation = false
@@ -56,17 +84,27 @@ final class EventListViewModel: ObservableObject {
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
-        fetchEvents()
         archivePastEvents()
+        fetchEvents()
     }
     
-    /// Fetches all non-archived events sorted by date ascending
-    func fetchEvents() {
+    /// Updates the active filter and refreshes the list
+    func setFilter(_ newFilter: EventListFilter) {
+        guard newFilter != filter else { return }
+        filter = newFilter
+        fetchEvents()
+    }
+    
+    /// Fetches events for the current filter
+    func fetchEvents(filter overrideFilter: EventListFilter? = nil) {
+        let activeFilter = overrideFilter ?? filter
+        let isArchivedValue = activeFilter.isArchived
+        let sort: SortDescriptor<Event> = SortDescriptor(\.date, order: activeFilter.sortOrder)
         let descriptor = FetchDescriptor<Event>(
             predicate: #Predicate<Event> { event in
-                event.isArchived == false
+                event.isArchived == isArchivedValue
             },
-            sortBy: [SortDescriptor(\.date, order: .forward)]
+            sortBy: [sort]
         )
         
         do {
@@ -79,9 +117,10 @@ final class EventListViewModel: ObservableObject {
     
     /// Archives events that have passed
     func archivePastEvents() {
+        let notArchived = false
         let descriptor = FetchDescriptor<Event>(
             predicate: #Predicate<Event> { event in
-                event.isArchived == false
+                event.isArchived == notArchived
             }
         )
         

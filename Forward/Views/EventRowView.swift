@@ -144,27 +144,45 @@ struct EventRowView: View {
     
     // MARK: - Days Counter Badge
     private var daysCounterBadge: some View {
-        VStack(spacing: 2) {
-            Text("\(event.daysUntil)")
-                .font(.system(size: 36, weight: .bold))
-                .foregroundColor(.white)
+        // Ensure we return a concrete View by building inside a closure
+        let build: () -> AnyView = {
+            let days = event.daysUntil
+            let value = abs(days)
+            let isPast = days < 0
             
-            Text(event.daysUntil == 1 ? "day" : "days")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
-        }
-        .frame(width: 100, height: 80)
-        .background(
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.45, green: 0.40, blue: 0.95),
-                    Color(red: 0.55, green: 0.45, blue: 0.92)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+            let view = VStack(spacing: 2) {
+                Text("\(value)")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundColor(.white)
+                
+                let label: String = {
+                    if isPast {
+                        return value == 1 ? "day ago" : "days ago"
+                    } else {
+                        return value == 1 ? "day" : "days"
+                    }
+                }()
+                
+                Text(label)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white.opacity(0.9))
+            }
+            .frame(width: 100, height: 80)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(red: 0.45, green: 0.40, blue: 0.95),
+                        Color(red: 0.55, green: 0.45, blue: 0.92)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            
+            return AnyView(view)
+        }
+        return build()
     }
 }
 
@@ -191,3 +209,4 @@ struct EventRowView: View {
     .padding()
     .background(Color(red: 0.97, green: 0.97, blue: 0.98))
 }
+
