@@ -12,6 +12,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: EventListViewModel
     private let headerHeight: CGFloat = 160
+    private let topAnchorID = "topAnchor"
     
     init(modelContext: ModelContext) {
         _viewModel = StateObject(wrappedValue: EventListViewModel(modelContext: modelContext))
@@ -19,32 +20,37 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                // Background
-                Color(red: 0.97, green: 0.97, blue: 0.98)
-                    .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Add New Event Button
-                        addEventButton
-                            .padding(.top, 16)
-                        
-                        // Event List
-                        eventList
-                            .padding(.top, 8)
+            ScrollViewReader { proxy in
+                ZStack(alignment: .top) {
+                    // Background
+                    Color(red: 0.97, green: 0.97, blue: 0.98)
+                        .ignoresSafeArea()
+                    
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            Color.clear
+                                .frame(height: headerHeight + 12)
+                                .id(topAnchorID)
+                            
+                            // Add New Event Button
+                            addEventButton
+                                .padding(.top, 16)
+                            
+                            // Event List
+                            eventList
+                                .padding(.top, 8)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, headerHeight + 12)
-                    .padding(.bottom, 32)
-                }
-                .ignoresSafeArea(edges: .top)
-                
-                // Fixed header
-                headerView
-                    .frame(maxWidth: .infinity)
-                    .frame(height: headerHeight)
                     .ignoresSafeArea(edges: .top)
+                    
+                    // Fixed header
+                    headerView(scrollProxy: proxy)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: headerHeight)
+                        .ignoresSafeArea(edges: .top)
+                }
             }
             .overlay(alignment: .center) {
                 if viewModel.showingCreateEvent {
@@ -106,7 +112,7 @@ struct HomeView: View {
     }
     
     // MARK: - Header View
-    private var headerView: some View {
+    private func headerView(scrollProxy: ScrollViewProxy) -> some View {
         ZStack {
             // Gradient background
             LinearGradient(
@@ -121,15 +127,22 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .center, spacing: 12) {
                     // Calendar icon
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.25))
-                            .frame(width: 48, height: 48)
-                        
-                        Image(systemName: "calendar")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(.white)
+                    Button {
+                        withAnimation(.easeInOut) {
+                            scrollProxy.scrollTo(topAnchorID, anchor: .top)
+                        }
+                    } label: {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.25))
+                                .frame(width: 48, height: 48)
+                            
+                            Image(systemName: "calendar")
+                                .font(.system(size: 22, weight: .medium))
+                                .foregroundColor(.white)
+                        }
                     }
+                    .buttonStyle(.plain)
                     
                     Text("FutureJoy")
                         .font(.system(size: 32, weight: .bold))
