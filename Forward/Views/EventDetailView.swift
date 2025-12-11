@@ -12,9 +12,23 @@ import Combine
 struct EventDetailView: View {
     let event: Event
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     
     @State private var now = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    @State private var isEditing = false
+    @State private var editedDate: Date
+    @State private var editedLocation: String
+    @State private var editedNotes: String
+    @State private var alertMessage: String?
+    
+    init(event: Event) {
+        self.event = event
+        _editedDate = State(initialValue: event.date)
+        _editedLocation = State(initialValue: event.location ?? "")
+        _editedNotes = State(initialValue: event.notes ?? "")
+    }
     
     private var timeRemaining: (days: Int, hours: Int, minutes: Int, seconds: Int) {
         let interval = max(event.date.timeIntervalSince(now), 0)
@@ -69,12 +83,32 @@ struct EventDetailView: View {
             ToolbarItem(placement: .principal) {
                 navTitle
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                editControls
+            }
+        }
+        .alert(
+            "Unable to Save Changes",
+            isPresented: Binding(
+                get: { alertMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        alertMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                alertMessage = nil
+            }
+        } message: {
+            Text(alertMessage ?? "")
         }
     }
     
     // MARK: - Header
     private var headerSection: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             countdownCard
                 .padding(.horizontal, 4)
                 .offset(y: 40)
@@ -111,6 +145,41 @@ struct EventDetailView: View {
                 )
         }
         .buttonStyle(.plain)
+    }
+    
+    private var editControls: some View {
+        HStack(spacing: 10) {
+            if isEditing {
+                Button {
+                    cancelEditing()
+                } label: {
+                    Circle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(width: 36, height: 36)
+                        .overlay(
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color(red: 0.32, green: 0.32, blue: 0.38))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            
+            Button {
+                handleEditTapped()
+            } label: {
+                Circle()
+                    .fill(Color.white.opacity(0.16))
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Image(systemName: isEditing ? "checkmark" : "pencil")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(red: 0.32, green: 0.32, blue: 0.38))
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+            }
+            .buttonStyle(.plain)
+        }
     }
     
     // MARK: - Countdown
@@ -170,9 +239,21 @@ struct EventDetailView: View {
             systemImage: "calendar",
             iconColor: Color(red: 0.32, green: 0.55, blue: 1.0)
         ) {
-            Text(formattedDate)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+            if isEditing {
+                DatePicker(
+                    "",
+                    selection: $editedDate,
+                    in: minimumDate...,
+                    displayedComponents: [.date]
+                )
+                .labelsHidden()
+                .tint(Color(red: 0.45, green: 0.40, blue: 0.95))
+                .datePickerStyle(.compact)
+            } else {
+                Text(formattedDate)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+            }
         }
     }
     
@@ -182,15 +263,30 @@ struct EventDetailView: View {
             systemImage: "mappin.and.ellipse",
             iconColor: Color(red: 0.62, green: 0.42, blue: 0.95)
         ) {
-            if let location = event.location, !location.isEmpty {
-                Text(location)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
-                    .multilineTextAlignment(.leading)
+            if isEditing {
+                VStack(spacing: 8) {
+                    TextField("Add a location", text: $editedLocation)
+                        .font(.system(size: 16, weight: .semibold))
+                        .padding(12)
+                        .background(Color(red: 0.97, green: 0.97, blue: 0.99))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
+                        )
+                        .textInputAutocapitalization(.sentences)
+                }
             } else {
-                Text("No location added")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
+                if let location = event.location, !location.isEmpty {
+                    Text(location)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+                        .multilineTextAlignment(.leading)
+                } else {
+                    Text("No location added")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
+                }
             }
         }
     }
@@ -201,16 +297,40 @@ struct EventDetailView: View {
             systemImage: "note.text",
             iconColor: Color(red: 0.99, green: 0.74, blue: 0.37)
         ) {
-            if let notes = event.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            if isEditing {
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $editedNotes)
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(minHeight: 120)
+                        .padding(10)
+                        .scrollContentBackground(.hidden)
+                        .background(Color(red: 0.97, green: 0.97, blue: 0.99))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
+                        )
+                    
+                    if editedNotes.isEmpty {
+                        Text("Add notes or details...")
+                            .foregroundColor(Color(red: 0.6, green: 0.6, blue: 0.65))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
+                            .allowsHitTesting(false)
+                    }
+                }
             } else {
-                Text("No notes yet")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let notes = event.notes, !notes.isEmpty {
+                    Text(notes)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No notes yet")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
     }
@@ -251,6 +371,60 @@ struct EventDetailView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color(red: 0.92, green: 0.92, blue: 0.94), lineWidth: 1)
         )
+    }
+    
+    // MARK: - Editing Helpers
+    private var minimumDate: Date {
+        Calendar.current.startOfDay(for: Date())
+    }
+    
+    private var isDateValid: Bool {
+        Calendar.current.startOfDay(for: editedDate) >= minimumDate
+    }
+    
+    private func handleEditTapped() {
+        if isEditing {
+            saveChanges()
+        } else {
+            startEditing()
+        }
+    }
+    
+    private func startEditing() {
+        resetEdits()
+        isEditing = true
+    }
+    
+    private func cancelEditing() {
+        resetEdits()
+        isEditing = false
+    }
+    
+    private func resetEdits() {
+        editedDate = event.date
+        editedLocation = event.location ?? ""
+        editedNotes = event.notes ?? ""
+    }
+    
+    private func saveChanges() {
+        guard isDateValid else {
+            alertMessage = "Event date cannot be in the past."
+            return
+        }
+        
+        let trimmedLocation = editedLocation.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        event.date = editedDate
+        event.location = trimmedLocation.isEmpty ? nil : trimmedLocation
+        event.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
+        
+        do {
+            try modelContext.save()
+            isEditing = false
+        } catch {
+            alertMessage = "Something went wrong while saving. Please try again."
+        }
     }
 }
 
