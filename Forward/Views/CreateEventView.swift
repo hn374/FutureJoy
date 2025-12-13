@@ -167,7 +167,7 @@ struct CreateEventView: View {
                 .labelsHidden()
                 .tint(Color(red: 0.45, green: 0.40, blue: 0.95))
                 .datePickerStyle(.compact)
-                .onChange(of: date) { _ in
+                .onChange(of: date) { _, _ in
                     dismissDatePicker()
                     datePickerID = UUID() // force rebuild to close popover
                 }

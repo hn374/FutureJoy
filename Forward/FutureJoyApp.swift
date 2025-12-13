@@ -7,9 +7,18 @@
 
 import SwiftUI
 import SwiftData
+import GoogleMobileAds
 
 @main
 struct FutureJoyApp: App {
+    init() {
+        // Initialize Google Mobile Ads SDK
+        // TODO: Replace with your actual AdMob App ID from your AdMob dashboard
+        // Format: ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+        MobileAds.shared.start(completionHandler: { status in
+            print("AdMob SDK initialized with status: \(status.adapterStatusesByClassName)")
+        })
+    }
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Event.self,

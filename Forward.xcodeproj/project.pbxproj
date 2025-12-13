@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B75459902EEE218600803D56 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = B754598F2EEE218600803D56 /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		B71511032EE3C07900D111CA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -84,6 +88,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B75459902EEE218600803D56 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -153,6 +158,7 @@
 			);
 			name = Forward;
 			packageProductDependencies = (
+				B754598F2EEE218600803D56 /* GoogleMobileAds */,
 			);
 			productName = Forward;
 			productReference = B71510F12EE3C07900D111CA /* Forward.app */;
@@ -258,6 +264,9 @@
 			);
 			mainGroup = B71510E82EE3C07900D111CA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B754598E2EEE218600803D56 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B71510F22EE3C07900D111CA /* Products */;
 			projectDirPath = "";
@@ -731,6 +740,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B754598E2EEE218600803D56 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B754598F2EEE218600803D56 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B754598E2EEE218600803D56 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B71510E92EE3C07900D111CA /* Project object */;
 }
