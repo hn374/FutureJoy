@@ -287,7 +287,8 @@ struct HomeView: View {
             if viewModel.filter == .past && viewModel.events.isEmpty {
                 emptyPastState
             } else {
-                ForEach(viewModel.events) { event in
+                ForEach(Array(viewModel.events.enumerated()), id: \.element.id) { index, event in
+                    // Show event
                     if viewModel.isSelectionMode {
                         EventRowView(
                             event: event,
@@ -310,6 +311,11 @@ struct HomeView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                    }
+                    
+                    // Show ad after every 10th event (at positions 9, 19, 29, etc.)
+                    if !viewModel.isSelectionMode && (index + 1) % 10 == 0 {
+                        NativeAdContainerView()
                     }
                 }
             }
