@@ -10,15 +10,15 @@ import SwiftData
 
 @Model
 final class Event {
-    @Attribute(.unique) var id: UUID
-    var title: String
-    var emoji: String
-    var date: Date
+    var id: UUID = UUID()
+    var title: String = ""
+    var emoji: String = ""
+    var date: Date = Date()
     var location: String?
     var category: String?
     var notes: String?
-    var isArchived: Bool
-    var createdAt: Date
+    var isArchived: Bool = false
+    var createdAt: Date = Date()
     
     init(
         title: String,

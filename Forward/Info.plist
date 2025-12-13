@@ -5,6 +5,8 @@
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>UIBackgroundModes</key>
-	<array/>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

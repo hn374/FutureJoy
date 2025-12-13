@@ -15,22 +15,31 @@ struct FutureJoyApp: App {
             Event.self,
         ])
         
-        // Local store configuration.
-        // Note: If you previously ran a different schema (e.g., the starter Item model),
-        // the old store can conflict. This uses a dedicated store file to avoid that.
-        let storeURL = URL.documentsDirectory.appending(path: "FutureJoy.store")
-        let modelConfiguration = ModelConfiguration(
-            .init(),
+        // Try CloudKit first, fallback to local storage if not configured
+        let containerIdentifier = "iCloud.Hoang.Forward"
+        let cloudKitConfig = ModelConfiguration(
             schema: schema,
-            url: storeURL,
-            allowsSave: true,
+            cloudKitDatabase: .private(containerIdentifier)
+        )
+        
+        // Try CloudKit-enabled configuration
+        do {
+            return try ModelContainer(for: schema, configurations: [cloudKitConfig])
+        } catch {
+            // Fallback to local storage if CloudKit fails
+        }
+        
+        let localStoreURL = URL.documentsDirectory.appending(path: "FutureJoy.store")
+        let localConfig = ModelConfiguration(
+            schema: schema,
+            url: localStoreURL,
             cloudKitDatabase: .none
         )
-
+        
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [localConfig])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("Could not create ModelContainer: \(error.localizedDescription)")
         }
     }()
 
