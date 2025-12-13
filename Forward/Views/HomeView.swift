@@ -214,17 +214,19 @@ struct HomeView: View {
                             }
                             .padding(.trailing, 4)
                         } else {
-                            Button("Select") {
-                                viewModel.enterSelectionMode()
+                            if !viewModel.events.isEmpty {
+                                Button("Select") {
+                                    viewModel.enterSelectionMode()
+                                }
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(Color.white.opacity(0.18))
+                                .clipShape(Capsule())
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
                             }
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .background(Color.white.opacity(0.18))
-                            .clipShape(Capsule())
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
                         }
                     }
                 }
