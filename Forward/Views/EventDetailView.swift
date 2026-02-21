@@ -111,18 +111,25 @@ struct EventDetailView: View {
         }
         // Provide a custom right-swipe-from-edge gesture to dismiss when the
         // system interactive pop is unavailable (e.g. custom navigation bar).
-        .highPriorityGesture(
-            DragGesture()
-                .onEnded { value in
-                    let isFromLeftEdge = value.startLocation.x < 30
-                    let isRightward = value.translation.width > 60
-                    let isMostlyHorizontal = abs(value.translation.height) < 40
-                    
-                    if isFromLeftEdge && isRightward && isMostlyHorizontal {
-                        dismiss()
-                    }
-                }
-        )
+        // Applied only to a leading-edge strip so it doesn't steal vertical
+        // drags from the ScrollView (which would prevent scrolling while editing).
+        .overlay(alignment: .leading) {
+            Color.clear
+                .frame(width: 30)
+                .contentShape(Rectangle())
+                .highPriorityGesture(
+                    DragGesture()
+                        .onEnded { value in
+                            let isFromLeftEdge = value.startLocation.x < 30
+                            let isRightward = value.translation.width > 60
+                            let isMostlyHorizontal = abs(value.translation.height) < 40
+                            
+                            if isFromLeftEdge && isRightward && isMostlyHorizontal {
+                                dismiss()
+                            }
+                        }
+                )
+        }
     }
     
     // MARK: - Header
