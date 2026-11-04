@@ -171,6 +171,7 @@ struct EventDetailView: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Back")
     }
     
     private var editControls: some View {
@@ -205,6 +206,7 @@ struct EventDetailView: View {
                     .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(isEditing ? "Save changes" : "Edit event")
         }
     }
     

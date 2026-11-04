@@ -63,6 +63,7 @@ struct EventRowView: View {
                                 .font(.system(size: 18))
                                 .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.75))
                         }
+                        .accessibilityLabel("Delete \(event.title)")
                     }
                 }
                 

@@ -37,8 +37,12 @@ struct CreateEventView: View {
     
     private var isFormValid: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !selectedEmoji.isEmpty &&
         isOnOrAfterToday(date)
+    }
+
+    private var emojiForSaving: String {
+        let trimmed = selectedEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "🎉" : String(trimmed.prefix(2))
     }
     
     var body: some View {
@@ -224,12 +228,32 @@ struct CreateEventView: View {
     
     private var emojiPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 4) {
-                Text("Choose an Emoji")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.32))
-                Text("*").foregroundColor(.red)
-            }
+            Text("Emoji (Optional)")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.32))
+
+            TextField("Emoji", text: $selectedEmoji)
+                .font(.system(size: 22))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(12)
+                .background(Color(red: 0.97, green: 0.97, blue: 0.99))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
+                )
+                .accessibilityLabel("Emoji")
+                .onChange(of: selectedEmoji) { _, newValue in
+                    let limited = String(newValue.prefix(2))
+                    if limited != newValue {
+                        selectedEmoji = limited
+                    }
+                }
+
+            Text("Defaults to 🎉 if left blank")
+                .font(.system(size: 14))
+                .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
             
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 10) {
                 ForEach(popularEmojis, id: \.self) { emoji in
@@ -295,7 +319,7 @@ struct CreateEventView: View {
         do {
             try viewModel.addEvent(
                 title: trimmedTitle,
-                emoji: selectedEmoji,
+                emoji: emojiForSaving,
                 date: date,
                 location: trimmedLocation.isEmpty ? nil : trimmedLocation,
                 notes: trimmedNotes.isEmpty ? nil : trimmedNotes
