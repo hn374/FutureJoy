@@ -1,3 +1,4 @@
+#if DEBUG && targetEnvironment(simulator)
 import XCTest
 
 @MainActor
@@ -100,3 +101,4 @@ final class SimulatorSampleDataUITests: XCTestCase {
         add(attachment)
     }
 }
+#endif
