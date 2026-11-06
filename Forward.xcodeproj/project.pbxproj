@@ -42,6 +42,8 @@
 		B715115C2EE915A000D111CA /* Exceptions for "Forward" folder in "Forward Dev" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Development/SampleDataLaunchMode.swift,
+				Development/SimulatorSampleStore.swift,
 				Assets.xcassets,
 				FutureJoyApp.swift,
 				Info.plist,
