@@ -11,6 +11,21 @@ import SwiftData
 @main
 struct FutureJoyApp: App {
     var sharedModelContainer: ModelContainer = {
+        #if DEBUG && targetEnvironment(simulator)
+        if case let .enabled(reset) = SampleDataLaunchMode.resolve(arguments: ProcessInfo.processInfo.arguments) {
+            do {
+                return try SimulatorSampleStore.open(
+                    directory: URL.applicationSupportDirectory.appending(path: "SimulatorSampleData"),
+                    reset: reset,
+                    referenceDate: Date(),
+                    calendar: .current
+                )
+            } catch {
+                fatalError("Could not prepare simulator sample data: \(error.localizedDescription)")
+            }
+        }
+        #endif
+
         let schema = Schema([
             Event.self,
         ])
