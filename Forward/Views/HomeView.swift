@@ -27,19 +27,19 @@ struct HomeView: View {
                         .ignoresSafeArea()
                     
                     ScrollView {
-                        VStack(spacing: 16) {
+                        LazyVStack(spacing: 16) {
                             Color.clear
-                                .frame(height: headerHeight + 12)
+                                .frame(height: headerHeight + 12 + (viewModel.filter == .past ? 8 : 0))
                                 .id(topAnchorID)
                             
                             // Add New Event Button (future events only)
                             if viewModel.filter == .future {
                                 addEventButton
+                                    .padding(.bottom, 8)
                             }
                             
                             // Event List
                             eventList
-                                .padding(.top, 8)
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 32)
@@ -93,7 +93,6 @@ struct HomeView: View {
             }
             .onAppear {
                 viewModel.archivePastEvents()
-                viewModel.fetchEvents()
             }
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -283,7 +282,7 @@ struct HomeView: View {
     
     // MARK: - Event List
     private var eventList: some View {
-        LazyVStack(spacing: 16) {
+        Group {
             if viewModel.filter == .past && viewModel.events.isEmpty {
                 emptyPastState
             } else {

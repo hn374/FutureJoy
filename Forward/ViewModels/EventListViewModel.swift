@@ -85,7 +85,6 @@ final class EventListViewModel: ObservableObject {
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
         archivePastEvents()
-        fetchEvents()
     }
     
     /// Updates the active filter and refreshes the list
@@ -118,22 +117,25 @@ final class EventListViewModel: ObservableObject {
     /// Archives events that have passed
     func archivePastEvents() {
         let notArchived = false
+        let today = Calendar.current.startOfDay(for: Date())
         let descriptor = FetchDescriptor<Event>(
             predicate: #Predicate<Event> { event in
-                event.isArchived == notArchived
+                event.isArchived == notArchived && event.date < today
             }
         )
         
         do {
-            let allEvents = try modelContext.fetch(descriptor)
-            for event in allEvents where event.isPast {
+            let pastEvents = try modelContext.fetch(descriptor)
+            for event in pastEvents {
                 event.isArchived = true
             }
-            try modelContext.save()
-            fetchEvents()
+            if !pastEvents.isEmpty {
+                try modelContext.save()
+            }
         } catch {
             print("Failed to archive past events: \(error)")
         }
+        fetchEvents()
     }
     
     /// Creates a new event
