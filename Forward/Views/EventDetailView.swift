@@ -293,7 +293,7 @@ struct EventDetailView: View {
                                     .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
                             )
                             .multilineTextAlignment(.center)
-                            .onChange(of: editedEmoji) { newValue in
+                            .onChange(of: editedEmoji) { _, newValue in
                                 let limited = String(newValue.prefix(2))
                                 if limited != newValue {
                                     editedEmoji = limited
