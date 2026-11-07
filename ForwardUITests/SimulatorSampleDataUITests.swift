@@ -201,6 +201,33 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertFalse(eventCard.exists)
     }
 
+    func testLongCardRemainsUsableAtLargestAccessibilityTextSize() {
+        app.launchArguments = ["--sample-data", "--reset-sample-data",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launch()
+        let title = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
+        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
+        scroll(until: app.staticTexts[title], direction: .up)
+        XCTAssertTrue(app.staticTexts[title].isHittable)
+        attachScreenshot("Long title at largest accessibility text size")
+        app.staticTexts[title].tap()
+        XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5))
+        app.buttons["Back"].tap()
+
+        let location = app.staticTexts["Fernwood Valley"]
+        scroll(until: location, direction: .up, fullyVisible: true)
+        XCTAssertTrue(location.isHittable)
+        XCTAssertTrue(app.scrollViews.firstMatch.frame.contains(location.frame))
+        attachScreenshot("Long card metadata at largest accessibility text size")
+        let delete = app.buttons["Delete \(title)"]
+        scroll(until: delete, direction: .down, fullyVisible: true)
+        XCTAssertTrue(delete.isHittable)
+        delete.tap()
+        XCTAssertTrue(app.alerts.buttons["Delete"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(card(title).exists)
+    }
+
     func testDateEditReordersCardsWhenReturningFromDetail() throws {
         launch(reset: true)
         let title = "Stargazing picnic"
@@ -256,11 +283,15 @@ final class SimulatorSampleDataUITests: XCTestCase {
 
     private enum ScrollDirection { case up, down }
 
-    private func scroll(until element: XCUIElement, direction: ScrollDirection) {
+    private func scroll(until element: XCUIElement, direction: ScrollDirection, fullyVisible: Bool = false) {
         for _ in 0..<8 {
-            if element.exists && element.isHittable { return }
             let scroll = app.scrollViews.firstMatch
-            if direction == .up { scroll.swipeUp() } else { scroll.swipeDown() }
+            if element.exists && element.isHittable && (!fullyVisible || scroll.frame.contains(element.frame)) { return }
+            if direction == .up {
+                scroll.swipeUp(velocity: fullyVisible ? .slow : .default)
+            } else {
+                scroll.swipeDown(velocity: fullyVisible ? .slow : .default)
+            }
         }
     }
 
