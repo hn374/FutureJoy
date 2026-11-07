@@ -1,6 +1,6 @@
 //
-//  FutureJoyApp.swift
-//  FutureJoy
+//  ForwardApp.swift
+//  Forward
 //
 //  Created by Hoang Nguyen on 12/5/25.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct FutureJoyApp: App {
+struct ForwardApp: App {
     private static let normalModelContainer: ModelContainer = {
         let schema = Schema([
             Event.self,

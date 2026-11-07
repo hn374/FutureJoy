@@ -46,7 +46,7 @@
 				Development/SimulatorSampleStore.swift,
 				Development/SimulatorSampleRootView.swift,
 				Assets.xcassets,
-				FutureJoyApp.swift,
+				ForwardApp.swift,
 				Info.plist,
 				Models/Event.swift,
 				tech_design.md,

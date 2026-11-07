@@ -4,8 +4,8 @@ Forward is an iOS app for keeping track of events you are looking forward to.
 Add an event with an emoji and date, watch the countdown, and revisit past events.
 
 The app's user-facing name is **Forward**, matching the Xcode project, app target,
-and main scheme. The repository URL and some internal names retain FutureJoy.
-Legacy internal names and existing data paths are retained for compatibility.
+and main scheme. The GitHub repository URL and legacy local-store name retain
+FutureJoy for compatibility.
 
 ## Features
 
@@ -98,7 +98,7 @@ To run on a physical device, select your own development team under the Forward
 target's **Signing & Capabilities** and configure signing for a bundle identifier
 and iCloud container you control. The repository currently references
 `Hoang.Forward` and `iCloud.Hoang.Forward`; the container in
-`Forward/FutureJoyApp.swift` and the iCloud entitlement must agree if you change
+`Forward/ForwardApp.swift` and the iCloud entitlement must agree if you change
 it. Physical-device signing and CloudKit sync need separate verification with
 your developer account. Sample mode is available only in Debug simulator builds.
 
@@ -107,7 +107,7 @@ your developer account. Sample mode is available only in Debug simulator builds.
 ```text
 Forward.xcodeproj/        Project and shared Forward scheme
 Forward/
-  FutureJoyApp.swift      App entry point and normal persistence setup
+  ForwardApp.swift        App entry point and normal persistence setup
   Models/                SwiftData Event model
   ViewModels/            Event lists, archiving, selection, and mutations
   Views/                 Home, event cards, creation, and detail/edit screens

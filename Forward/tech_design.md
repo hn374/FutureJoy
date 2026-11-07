@@ -37,7 +37,7 @@ Forward/Forward/
 ├── Assets.xcassets/
 │   └── AccentColor (purple palette to match UI)
 │
-├── FutureJoyApp.swift          // App entry; SwiftData + CloudKit config
+├── ForwardApp.swift            // App entry; SwiftData + CloudKit config
 ├── Forward.entitlements        // CloudKit + APS prepared
 └── tech_design.md
 
@@ -135,4 +135,4 @@ CloudKit will sync Event data once the container is configured in Signing & Capa
 11. Setup Checklist for CloudKit (post Developer account)
 - In Xcode Signing & Capabilities: enable iCloud + CloudKit, add container (e.g., `iCloud.<bundle-id>`).
 - Ensure `Forward.entitlements` lists the container (currently templated with `iCloud.$(PRODUCT_BUNDLE_IDENTIFIER)`).
-- Keep `cloudKitDatabase: .automatic` in `FutureJoyApp.swift` ModelConfiguration.
+- Keep `cloudKitDatabase: .automatic` in `ForwardApp.swift` ModelConfiguration.

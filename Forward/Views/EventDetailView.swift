@@ -1,6 +1,6 @@
 //
 //  EventDetailView.swift
-//  FutureJoy
+//  Forward
 //
 //  Created by Hoang Nguyen on 12/6/25.
 //
