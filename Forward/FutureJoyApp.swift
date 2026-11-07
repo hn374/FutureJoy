@@ -12,10 +12,11 @@ import SwiftData
 struct FutureJoyApp: App {
     var sharedModelContainer: ModelContainer = {
         #if DEBUG && targetEnvironment(simulator)
-        if case let .enabled(reset) = SampleDataLaunchMode.resolve(arguments: ProcessInfo.processInfo.arguments) {
+        if case let .enabled(reset, profile) = SampleDataLaunchMode.resolve(arguments: ProcessInfo.processInfo.arguments) {
             do {
                 return try SimulatorSampleStore.open(
                     directory: URL.applicationSupportDirectory.appending(path: "SimulatorSampleData"),
+                    profile: profile,
                     reset: reset,
                     referenceDate: Date(),
                     calendar: .current

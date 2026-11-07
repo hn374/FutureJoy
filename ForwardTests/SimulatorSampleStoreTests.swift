@@ -5,6 +5,42 @@ import SwiftData
 
 @MainActor
 final class SimulatorSampleStoreTests: XCTestCase {
+    func testProfilesPersistIndependentlyAndResetOnlyActiveStore() async throws {
+        let directory = try temporaryDirectory()
+        let typical = try SimulatorSampleStore.open(directory: directory, reset: false, referenceDate: referenceDate(), calendar: calendar)
+        typical.mainContext.insert(Event(title: "Typical addition", emoji: "☕️", date: referenceDate()))
+        try typical.mainContext.save()
+        let empty = try SimulatorSampleStore.open(directory: directory, profile: .empty, reset: false, referenceDate: referenceDate(), calendar: calendar)
+        XCTAssertTrue(try events(empty.mainContext).isEmpty)
+        empty.mainContext.insert(Event(title: "Empty addition", emoji: "🌱", date: referenceDate()))
+        try empty.mainContext.save()
+        let reopened = try SimulatorSampleStore.open(directory: directory, profile: .empty, reset: false, referenceDate: referenceDate(), calendar: calendar)
+        XCTAssertEqual(try events(reopened.mainContext).map(\.title), ["Empty addition"])
+        try SimulatorSampleStore.reset(container: empty, profile: .empty, referenceDate: referenceDate(2027, 1, 1), calendar: calendar)
+        XCTAssertTrue(try events(ModelContext(empty)).isEmpty)
+        XCTAssertEqual(try events(typical.mainContext).count, 7)
+        XCTAssertTrue(try events(typical.mainContext).contains { $0.title == "Typical addition" })
+    }
+
+    func testProfileFixturesHaveDistinctScenarios() async throws {
+        let directory = try temporaryDirectory()
+        for (profile, count) in [(SampleDataProfile.empty, 0), (.typical, 6), (.busy, 300), (.edgeCases, 8), (.archiveHeavy, 21)] {
+            let store = try SimulatorSampleStore.open(directory: directory, profile: profile, reset: false, referenceDate: referenceDate(), calendar: calendar)
+            let all = try events(store.mainContext)
+            XCTAssertEqual(all.count, count)
+            XCTAssertEqual(Set(all.map(\.id)).count, count)
+            if profile == .busy {
+                XCTAssertTrue(all.contains { $0.isArchived })
+                XCTAssertTrue(all.contains { !$0.isArchived })
+            }
+            if profile == .archiveHeavy { XCTAssertEqual(all.filter(\.isArchived).count, 20) }
+            if profile == .edgeCases {
+                XCTAssertTrue(all.contains { $0.title.count > 60 && ($0.notes?.count ?? 0) > 400 })
+                XCTAssertLessThan(Set(all.map(\.date)).count, all.count)
+            }
+        }
+    }
+
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York")!
