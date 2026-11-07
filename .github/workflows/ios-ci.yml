@@ -1,0 +1,54 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+    steps:
+      - name: Check out code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Prepare simulator
+        run: |
+          xcodebuild -version
+          simulator_id=$(xcrun simctl create "Forward CI" \
+            com.apple.CoreSimulator.SimDeviceType.iPhone-17 \
+            com.apple.CoreSimulator.SimRuntime.iOS-26-1)
+          echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+          echo "Testing on iPhone 17 / iOS 26.1 ($simulator_id)"
+          xcrun simctl boot "$simulator_id"
+          xcrun simctl bootstatus "$simulator_id" -b
+
+      - name: Build and run selected tests
+        run: bash .github/scripts/ios-ci.sh
+
+      - name: Upload test results and logs
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: forward-test-results
+          path: |
+            ${{ runner.temp }}/ForwardTests.xcresult
+            ${{ runner.temp }}/forward-build.log
+            ${{ runner.temp }}/forward-tests.log
+            ${{ runner.temp }}/forward-test-tree.json
+          retention-days: 7
