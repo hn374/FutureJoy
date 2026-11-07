@@ -3,9 +3,11 @@
 Forward is an iOS app for keeping track of events you are looking forward to.
 Add an event with an emoji and date, watch the countdown, and revisit past events.
 
-The app is being renamed from **FutureJoy** to **Forward**. The repository URL,
-some source filenames, and the current in-app title still use FutureJoy; the
-Xcode project, app target, and main scheme are named Forward.
+The app's user-facing name is **Forward**, matching the Xcode project, app target,
+and main scheme. The repository URL and some internal names retain FutureJoy.
+Compatibility paths and identifiers are preserved; see the
+[branding audit and verification checklist](docs/verification/forward-branding.md)
+for retained references and runtime checks.
 
 ## Features
 
@@ -73,7 +75,7 @@ open Forward.xcodeproj
 3. For fictional data, enable `--sample-data` under **Product → Scheme → Edit
    Scheme → Run → Arguments** as described [below](#simulator-sample-data).
    Leave it off to use normal persistence.
-4. Choose **Product → Run** (`⌘R`). The current home-screen heading is FutureJoy.
+4. Choose **Product → Run** (`⌘R`). The home-screen heading is **Forward**.
 
 Simulator builds use the default simulator signing and do not require Apple
 credentials. Keep signing enabled: normal-mode CloudKit initialization needs the
