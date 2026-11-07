@@ -47,27 +47,117 @@ final class ListSwitchingUITests: XCTestCase {
 
     func testSwitchingFromScrolledListStartsDestinationAtTop() {
         launch(profile: "busy")
-        let add = app.buttons["Add New Event"]
-        XCTAssertTrue(add.waitForExistence(timeout: 10))
-        let initialY = add.frame.minY
-        app.scrollViews.firstMatch.swipeUp()
-        app.scrollViews.firstMatch.swipeUp()
-        XCTAssertFalse(add.isHittable)
-        switchTo("Future")
-        XCTAssertFalse(add.isHittable, "Selecting the active list must preserve its scroll position")
-        switchTo("Past")
+        let add = list.buttons["Add New Event"]
+        let firstFuture = card("Busy event 101")
         let firstPast = card("Busy event 100")
-        XCTAssertTrue(firstPast.waitForExistence(timeout: 5))
-        attach("Busy Past reset to top")
-        XCTAssertTrue(app.scrollViews.firstMatch.frame.contains(firstPast.frame), "The first Past card must be fully visible: card \(firstPast.frame), viewport \(app.scrollViews.firstMatch.frame)")
-        app.scrollViews.firstMatch.swipeUp()
+        assertFullyVisible(add)
+        let futureTop = relativeTop(of: add)
+        switchTo("Past")
+        assertFullyVisible(firstPast)
+        let pastTop = relativeTop(of: firstPast)
         switchTo("Future")
-        XCTAssertEqual(add.frame.minY, initialY, accuracy: 2, "Returning to Future must restore its initial top position")
-        XCTAssertTrue(app.scrollViews.firstMatch.frame.contains(add.frame), "Add must be fully visible below the pinned header")
-        attach("Busy list reset to top")
-        app.scrollViews.firstMatch.swipeUp()
+        assertAtTop(add, relativeTo: futureTop)
+
+        for round in 1...3 {
+            scrollOffscreen([add, firstFuture])
+            switchTo("Future")
+            assertOffscreen([add, firstFuture], "Selecting active Future must preserve scrolling")
+            switchTo("Past")
+            assertAtTop(firstPast, relativeTo: pastTop)
+            attach("Round \(round) Past reset to top")
+
+            scrollOffscreen([firstPast])
+            switchTo("Past")
+            assertOffscreen([firstPast], "Selecting active Past must preserve scrolling")
+            switchTo("Future")
+            assertAtTop(add, relativeTo: futureTop)
+            assertFullyVisible(firstFuture)
+            let visibleEvents = list.buttons.matching(NSPredicate(
+                format: "label CONTAINS 'Busy event' AND NOT label BEGINSWITH 'Delete '"
+            )).allElementsBoundByIndex.filter { element in
+                element.exists && list.frame.intersects(element.frame)
+            }.sorted { $0.frame.minY < $1.frame.minY }
+            XCTAssertEqual(visibleEvents.first?.label, firstFuture.label,
+                           "Busy event 101 must be the first visible Future event")
+            attach("Round \(round) Future reset to top")
+        }
+
+        scrollOffscreen([add, firstFuture])
         app.buttons["Scroll to top"].tap()
-        XCTAssertEqual(add.frame.minY, initialY, accuracy: 2, "Calendar must reset to the same visible top position")
+        assertAtTop(add, relativeTo: futureTop)
+        assertFullyVisible(firstFuture)
+        scrollOffscreen([add, firstFuture])
+    }
+
+    func testScrolledPastSwitchesToShortFutureAtTop() {
+        launch(profile: "archive-heavy", largeText: true)
+        let add = list.buttons["Add New Event"]
+        assertFullyVisible(add)
+        let futureTop = relativeTop(of: add)
+        switchTo("Past")
+        // An exact delete label distinguishes memory 1 from memories 10–19.
+        let firstPast = list.buttons["Delete Archived memory 1"]
+        assertFullyVisible(firstPast)
+        let pastTop = relativeTop(of: firstPast)
+
+        for round in 1...2 {
+            scrollOffscreen([firstPast])
+            switchTo("Future")
+            assertAtTop(add, relativeTo: futureTop)
+            assertFullyVisible(card("Next adventure"))
+            attach("Round \(round) short Future reset")
+            switchTo("Past")
+            assertAtTop(firstPast, relativeTo: pastTop)
+        }
+    }
+
+    func testScrolledFutureSwitchesToEmptyPastAtTop() {
+        XCUIDevice.shared.orientation = .portrait
+        launch(profile: "typical", largeText: true)
+        let add = list.buttons["Add New Event"]
+        let firstFuture = card("Coffee and a good book")
+        assertFullyVisible(add)
+        let futureTop = relativeTop(of: add)
+        switchTo("Past")
+        for title in ["Board game night", "Lakeside sketching afternoon"] {
+            let delete = list.buttons["Delete \(title)"]
+            scrollToVisible(delete)
+            delete.tap()
+            let confirmation = app.alerts.buttons["Delete"]
+            XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+            confirmation.tap()
+            XCTAssertTrue(delete.waitForNonExistence(timeout: 5))
+        }
+        let empty = list.staticTexts["No past events yet"]
+        assertFullyVisible(empty)
+        let emptyTop = relativeTop(of: empty)
+        switchTo("Future")
+        assertAtTop(add, relativeTo: futureTop)
+
+        // A tall display may fit the fixtures; add real events only when displacement needs more content.
+        for index in 1...8 {
+            if scrollUpUntilOffscreen([add, firstFuture]) { break }
+            app.buttons["Scroll to top"].tap()
+            assertAtTop(add, relativeTo: futureTop)
+            add.tap()
+            let name = app.textFields["Birthday Party"]
+            XCTAssertTrue(name.waitForExistence(timeout: 5))
+            name.tap()
+            name.typeText("Scroll coverage event \(index)")
+            if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+            app.buttons["Create Event"].tap()
+            XCTAssertTrue(name.waitForNonExistence(timeout: 5))
+        }
+
+        for round in 1...2 {
+            scrollOffscreen([add, firstFuture])
+            switchTo("Past")
+            assertAtTop(empty, relativeTo: emptyTop)
+            attach("Round \(round) empty Past reset")
+            switchTo("Future")
+            assertAtTop(add, relativeTo: futureTop)
+            assertFullyVisible(firstFuture)
+        }
     }
 
     func testEmptyAndArchiveHeavyListsCanSwitchAtLargestTextSize() {
@@ -103,13 +193,75 @@ final class ListSwitchingUITests: XCTestCase {
 
     private func switchTo(_ title: String) {
         let tab = app.buttons[title]
-        XCTAssertTrue(tab.waitForExistence(timeout: 5), "Both list destinations must be visible")
-        XCTAssertTrue(tab.isHittable, "List switching must remain pinned while scrolling")
+        let exists = tab.waitForExistence(timeout: 5)
+        if !exists { attach("\(title) tab unavailable for switching") }
+        XCTAssertTrue(exists, "Both list destinations must remain available while scrolling")
         tab.tap()
     }
 
     private func card(_ title: String) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title)).firstMatch
+        list.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title)).firstMatch
+    }
+
+    private var list: XCUIElement { app.scrollViews.firstMatch }
+
+    private func relativeTop(of element: XCUIElement) -> CGFloat {
+        element.frame.minY - list.frame.minY
+    }
+
+    private func assertFullyVisible(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        let visible = NSPredicate { _, _ in
+            element.exists && !element.frame.isEmpty && self.list.frame.contains(element.frame)
+        }
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: visible, object: nil)], timeout: 5)
+        XCTAssertEqual(result, .completed,
+                       "Expected fully visible content: \(element), frame \(element.frame), viewport \(list.frame)",
+                       file: file, line: line)
+    }
+
+    private func assertAtTop(_ element: XCUIElement, relativeTo initialTop: CGFloat,
+                             file: StaticString = #filePath, line: UInt = #line) {
+        assertFullyVisible(element, file: file, line: line)
+        let atTop = NSPredicate { _, _ in
+            element.exists && abs(self.relativeTop(of: element) - initialTop) <= 2
+        }
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: atTop, object: nil)], timeout: 5)
+        XCTAssertEqual(result, .completed,
+                       "Expected initial relative top \(initialTop), actual \(relativeTop(of: element))",
+                       file: file, line: line)
+    }
+
+    private func isOutsideViewport(_ element: XCUIElement) -> Bool {
+        !element.exists || !list.frame.intersects(element.frame)
+    }
+
+    private func assertOffscreen(_ elements: [XCUIElement], _ message: String,
+                                 file: StaticString = #filePath, line: UInt = #line) {
+        let outside = NSPredicate { _, _ in elements.allSatisfy { self.isOutsideViewport($0) } }
+        let result = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: outside, object: nil)], timeout: 5)
+        XCTAssertEqual(result, .completed, message, file: file, line: line)
+    }
+
+    private func scrollOffscreen(_ elements: [XCUIElement], file: StaticString = #filePath, line: UInt = #line) {
+        _ = scrollUpUntilOffscreen(elements)
+        assertOffscreen(elements, "The source top content must leave the viewport before switching", file: file, line: line)
+    }
+
+    private func scrollUpUntilOffscreen(_ elements: [XCUIElement]) -> Bool {
+        for _ in 0..<8 {
+            if elements.allSatisfy({ isOutsideViewport($0) }) { return true }
+            list.swipeUp()
+        }
+        return elements.allSatisfy { isOutsideViewport($0) }
+    }
+
+    private func scrollToVisible(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
+        for _ in 0..<8 {
+            if element.exists && list.frame.contains(element.frame) && element.isHittable { break }
+            list.swipeUp(velocity: .slow)
+        }
+        assertFullyVisible(element, file: file, line: line)
+        XCTAssertTrue(element.isHittable, file: file, line: line)
     }
 
     private func attach(_ name: String) {
