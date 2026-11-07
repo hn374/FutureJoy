@@ -13,6 +13,53 @@ final class SimulatorSampleDataUITests: XCTestCase {
         app.terminate()
     }
 
+    func testProfilesSwitchPersistAndResetIndependently() {
+        app.launchArguments = ["--sample-data", "--sample-profile", "empty", "--reset-sample-data"]
+        app.launch()
+        launch(reset: true)
+        app.buttons["Delete Coffee and a good book"].tap()
+        app.alerts.buttons["Delete"].tap()
+        selectProfile("Empty")
+        XCTAssertFalse(card("Stargazing picnic").exists)
+        app.buttons["Add New Event"].tap()
+        let name = app.textFields["Birthday Party"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Empty profile addition")
+        if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+        app.buttons["Create Event"].tap()
+        XCTAssertTrue(card("Empty profile addition").waitForExistence(timeout: 5))
+        attachScreenshot("Empty profile with a saved addition")
+        app.terminate()
+        app.launchArguments = ["--sample-data", "--sample-profile", "empty"]
+        app.launch()
+        XCTAssertTrue(card("Empty profile addition").waitForExistence(timeout: 10))
+        selectProfile("Typical")
+        XCTAssertTrue(card("Stargazing picnic").waitForExistence(timeout: 5))
+        XCTAssertFalse(card("Coffee and a good book").exists)
+        XCTAssertFalse(card("Empty profile addition").exists)
+        card("Stargazing picnic").tap()
+        selectProfile("Empty")
+        XCTAssertTrue(card("Empty profile addition").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Edit event"].exists)
+        app.buttons["Reset profile"].tap()
+        app.alerts.buttons["Cancel"].tap()
+        XCTAssertTrue(card("Empty profile addition").exists)
+        app.buttons["Reset profile"].tap()
+        app.alerts.buttons["Reset"].tap()
+        XCTAssertFalse(card("Empty profile addition").waitForExistence(timeout: 2))
+        selectProfile("Typical")
+        XCTAssertFalse(card("Coffee and a good book").exists)
+        attachScreenshot("Typical profile preserves independent edits")
+        app.buttons["Testing profiles"].tap()
+        attachScreenshot("Testing profile choices")
+    }
+
+    private func selectProfile(_ title: String) {
+        app.buttons["Testing profiles"].tap()
+        app.buttons[title].tap()
+    }
+
     func testSampleEditsAndDeletionPersistUntilExplicitReset() {
         launch(reset: true)
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
@@ -71,6 +118,14 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertFalse(card(title).exists)
         launch(reset: false)
         XCTAssertFalse(card(title).exists)
+        for profile in ["empty", "busy"] {
+            app.terminate()
+            app.launchArguments = ["--sample-data", "--sample-profile", profile, "--reset-sample-data"]
+            app.launch()
+            XCTAssertTrue(app.buttons["Testing profiles"].waitForExistence(timeout: 10))
+            XCTAssertFalse(card(title).exists)
+            if profile == "busy" { attachScreenshot("Busy profile with hundreds of events") }
+        }
 
         app.terminate()
         app.launchArguments = ["--reset-sample-data"]

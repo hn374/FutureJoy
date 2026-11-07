@@ -10,23 +10,7 @@ import SwiftData
 
 @main
 struct FutureJoyApp: App {
-    var sharedModelContainer: ModelContainer = {
-        #if DEBUG && targetEnvironment(simulator)
-        if case let .enabled(reset, profile) = SampleDataLaunchMode.resolve(arguments: ProcessInfo.processInfo.arguments) {
-            do {
-                return try SimulatorSampleStore.open(
-                    directory: URL.applicationSupportDirectory.appending(path: "SimulatorSampleData"),
-                    profile: profile,
-                    reset: reset,
-                    referenceDate: Date(),
-                    calendar: .current
-                )
-            } catch {
-                fatalError("Could not prepare simulator sample data: \(error.localizedDescription)")
-            }
-        }
-        #endif
-
+    private static let normalModelContainer: ModelContainer = {
         let schema = Schema([
             Event.self,
         ])
@@ -61,10 +45,30 @@ struct FutureJoyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView(modelContext: sharedModelContainer.mainContext)
+            content
                 .preferredColorScheme(.light)
         }
-        .modelContainer(sharedModelContainer)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        #if DEBUG && targetEnvironment(simulator)
+        switch SampleDataLaunchMode.resolve(arguments: ProcessInfo.processInfo.arguments) {
+        case let .enabled(reset, profile):
+            SimulatorSampleRootView(profile: profile, reset: reset)
+        case let .invalid(message):
+            ContentUnavailableView("Invalid testing profile", systemImage: "exclamationmark.triangle", description: Text(message))
+        case .disabled:
+            normalContent
+        }
+        #else
+        normalContent
+        #endif
+    }
+
+    private var normalContent: some View {
+        HomeView(modelContext: Self.normalModelContainer.mainContext)
+            .modelContainer(Self.normalModelContainer)
     }
 }
 

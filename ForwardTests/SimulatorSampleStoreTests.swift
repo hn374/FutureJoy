@@ -41,6 +41,35 @@ final class SimulatorSampleStoreTests: XCTestCase {
         }
     }
 
+    func testSessionSavesPendingChangesAndClearsOldContextOnSwitchAndReset() async throws {
+        let session = try SimulatorSampleSession(directory: temporaryDirectory(), profile: .typical, reset: false)
+        let originalID = session.snapshot.id
+        session.snapshot.context.insert(Event(title: "Pending addition", emoji: "🌱", date: referenceDate()))
+        try session.select(.empty)
+        XCTAssertNotEqual(session.snapshot.id, originalID)
+        XCTAssertTrue(try events(session.snapshot.context).isEmpty)
+        try session.select(.typical)
+        XCTAssertTrue(try events(session.snapshot.context).contains { $0.title == "Pending addition" })
+        let beforeReset = session.snapshot.id
+        try session.reset()
+        XCTAssertNotEqual(session.snapshot.id, beforeReset)
+        XCTAssertEqual(try events(session.snapshot.context).count, 6)
+        XCTAssertFalse(try events(session.snapshot.context).contains { $0.title == "Pending addition" })
+    }
+
+    func testFailedProfileSwitchKeepsActiveSessionAndSavedData() async throws {
+        let directory = try temporaryDirectory()
+        let session = try SimulatorSampleSession(directory: directory, profile: .typical, reset: false)
+        let identity = session.snapshot.id
+        let blocker = directory.appending(path: SampleDataProfile.empty.storeFilename)
+        try FileManager.default.createDirectory(at: blocker, withIntermediateDirectories: false)
+        session.snapshot.context.insert(Event(title: "Keep me", emoji: "🔒", date: referenceDate()))
+        XCTAssertThrowsError(try session.select(.empty))
+        XCTAssertEqual(session.snapshot.profile, .typical)
+        XCTAssertEqual(session.snapshot.id, identity)
+        XCTAssertTrue(try events(session.snapshot.context).contains { $0.title == "Keep me" })
+    }
+
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York")!
