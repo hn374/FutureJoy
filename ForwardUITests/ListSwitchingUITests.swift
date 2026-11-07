@@ -31,7 +31,7 @@ final class ListSwitchingUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 5))
         attach("Switching disabled during selection")
         // Tap the destination's position: no switch or selection loss may occur.
-        app.segmentedControls.buttons["Past"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        app.buttons["Past"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.staticTexts["1 selected"].exists)
         XCTAssertTrue(app.staticTexts["Coffee and a good book"].exists)
         app.buttons["Cancel"].tap()
@@ -73,7 +73,7 @@ final class ListSwitchingUITests: XCTestCase {
     func testEmptyAndArchiveHeavyListsCanSwitchAtLargestTextSize() {
         for profile in ["empty", "archive-heavy"] {
             launch(profile: profile, largeText: true)
-            XCTAssertTrue(app.segmentedControls.buttons["Past"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.buttons["Past"].waitForExistence(timeout: 10))
             switchTo("Past")
             XCTAssertTrue(app.staticTexts["FutureJoy"].exists)
             XCTAssertFalse(app.buttons["Add New Event"].exists)
@@ -102,10 +102,10 @@ final class ListSwitchingUITests: XCTestCase {
     }
 
     private func switchTo(_ title: String) {
-        let segment = app.segmentedControls.buttons[title]
-        XCTAssertTrue(segment.waitForExistence(timeout: 5), "Both list destinations must be visible")
-        XCTAssertTrue(segment.isHittable, "List switching must remain pinned while scrolling")
-        segment.tap()
+        let tab = app.buttons[title]
+        XCTAssertTrue(tab.waitForExistence(timeout: 5), "Both list destinations must be visible")
+        XCTAssertTrue(tab.isHittable, "List switching must remain pinned while scrolling")
+        tab.tap()
     }
 
     private func card(_ title: String) -> XCUIElement {
