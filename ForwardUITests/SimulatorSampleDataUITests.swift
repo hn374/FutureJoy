@@ -226,6 +226,104 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
     }
 
+    func testArchivedEventRescheduledToFutureMovesListsAndPersists() throws {
+        let calendar = Calendar.current
+        let targetMonth = try XCTUnwrap(calendar.date(byAdding: .month, value: 2, to: Date()))
+        var components = calendar.dateComponents([.year, .month], from: targetMonth)
+        components.day = 15
+        try assertArchivedEventReschedules(to: XCTUnwrap(calendar.date(from: components)))
+    }
+
+    func testArchivedEventRescheduledToTodayMovesListsAndPersists() throws {
+        try assertArchivedEventReschedules(to: Calendar.current.startOfDay(for: Date()))
+    }
+
+    func testSavingArchivedEventWithPastDateKeepsItArchived() {
+        launch(reset: true)
+        app.buttons["FutureJoy"].tap()
+        app.buttons["Past"].tap()
+        card("Board game night").tap()
+        app.buttons["Edit event"].tap()
+        app.buttons["Save changes"].tap()
+        XCTAssertTrue(app.alerts.staticTexts["Event date cannot be in the past."].waitForExistence(timeout: 5))
+        app.alerts.buttons["OK"].tap()
+
+        launch(reset: false)
+        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
+        XCTAssertFalse(card("Board game night").exists)
+        app.buttons["FutureJoy"].tap()
+        app.buttons["Past"].tap()
+        XCTAssertTrue(card("Board game night").waitForExistence(timeout: 5))
+    }
+
+    private func assertArchivedEventReschedules(to targetDate: Date) throws {
+        let title = "Board game night"
+        launch(reset: true)
+        app.buttons["FutureJoy"].tap()
+        app.buttons["Past"].tap()
+        XCTAssertTrue(card(title).waitForExistence(timeout: 5))
+        card(title).tap()
+        app.buttons["Edit event"].tap()
+        let picker = app.datePickers.firstMatch
+        scroll(until: picker, direction: .up)
+        XCTAssertTrue(picker.isHittable)
+        picker.tap()
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "EEEE, MMMM d"
+        let targetDay = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", formatter.string(from: targetDate))).firstMatch
+        if Calendar.current.isDateInToday(targetDate) {
+            // A past picker value is displayed as today; change it before selecting today.
+            let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: targetDate))
+            let tomorrowDay = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", formatter.string(from: tomorrow))).firstMatch
+            if !tomorrowDay.waitForExistence(timeout: 2) {
+                app.buttons["Next Month"].tap()
+            }
+            XCTAssertTrue(tomorrowDay.waitForExistence(timeout: 5))
+            tomorrowDay.tap()
+            if !targetDay.waitForExistence(timeout: 2) {
+                app.buttons["Previous Month"].tap()
+            }
+        }
+        for _ in 0..<3 {
+            if targetDay.waitForExistence(timeout: 2) { break }
+            app.buttons["Next Month"].tap()
+        }
+        XCTAssertTrue(targetDay.waitForExistence(timeout: 5), app.debugDescription)
+        targetDay.tap()
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+        XCTAssertTrue(app.buttons["Next Month"].waitForNonExistence(timeout: 5))
+        app.buttons["Save changes"].tap()
+        XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5), app.debugDescription)
+        formatter.dateFormat = "EEEE, MMMM d, yyyy"
+        XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
+        attachScreenshot("Rescheduled archived event")
+        app.buttons["Back"].tap()
+        XCTAssertTrue(app.buttons["PastJoy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(card(title).waitForNonExistence(timeout: 5), "A rescheduled event must leave Past")
+        XCTAssertTrue(card("Lakeside sketching afternoon").exists)
+        app.buttons["PastJoy"].tap()
+        app.buttons["Future"].tap()
+        scroll(until: card(title), direction: .up)
+        XCTAssertTrue(card(title).isHittable)
+        XCTAssertEqual(cards(title).count, 1)
+        attachScreenshot("Rescheduled event in Future")
+
+        launch(reset: false)
+        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
+        scroll(until: card(title), direction: .up)
+        XCTAssertTrue(card(title).isHittable)
+        XCTAssertEqual(cards(title).count, 1)
+        card(title).tap()
+        XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
+        app.buttons["Back"].tap()
+        app.buttons["FutureJoy"].tap()
+        app.buttons["Past"].tap()
+        XCTAssertTrue(card("Lakeside sketching afternoon").waitForExistence(timeout: 5))
+        XCTAssertFalse(card(title).exists)
+    }
+
     private enum ScrollDirection { case up, down }
 
     private func scroll(until element: XCUIElement, direction: ScrollDirection) {
@@ -243,7 +341,11 @@ final class SimulatorSampleDataUITests: XCTestCase {
     }
 
     private func card(_ title: String) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title)).firstMatch
+        cards(title).firstMatch
+    }
+
+    private func cards(_ title: String) -> XCUIElementQuery {
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title))
     }
 
     private func attachScreenshot(_ name: String) {

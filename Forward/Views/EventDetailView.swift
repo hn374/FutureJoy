@@ -519,6 +519,7 @@ struct EventDetailView: View {
         event.title = trimmedTitle
         event.emoji = trimmedEmoji
         event.date = editedDate
+        event.isArchived = false
         event.location = trimmedLocation.isEmpty ? nil : trimmedLocation
         event.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
         
