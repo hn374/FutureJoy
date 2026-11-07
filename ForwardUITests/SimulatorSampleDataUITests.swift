@@ -307,14 +307,14 @@ final class SimulatorSampleDataUITests: XCTestCase {
         app.buttons["Future"].tap()
         scroll(until: card(title), direction: .up)
         XCTAssertTrue(card(title).isHittable)
-        XCTAssertEqual(app.staticTexts.matching(identifier: title).count, 1)
+        XCTAssertEqual(cards(title).count, 1)
         attachScreenshot("Rescheduled event in Future")
 
         launch(reset: false)
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
         scroll(until: card(title), direction: .up)
         XCTAssertTrue(card(title).isHittable)
-        XCTAssertEqual(app.staticTexts.matching(identifier: title).count, 1)
+        XCTAssertEqual(cards(title).count, 1)
         card(title).tap()
         XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
         app.buttons["Back"].tap()
@@ -341,7 +341,11 @@ final class SimulatorSampleDataUITests: XCTestCase {
     }
 
     private func card(_ title: String) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title)).firstMatch
+        cards(title).firstMatch
+    }
+
+    private func cards(_ title: String) -> XCUIElementQuery {
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", title))
     }
 
     private func attachScreenshot(_ name: String) {
