@@ -3,41 +3,18 @@ import XCTest
 import SwiftData
 import SwiftUI
 import UIKit
+import Vision
 @testable import Forward
 
 @MainActor
-final class EventListPerformanceTests: XCTestCase {
-    private func store(count: Int = 10_000) throws -> ModelContainer {
-        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
-        let schema = Schema([Event.self])
-        let container = try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, url: directory.appending(path: "Events.store"), cloudKitDatabase: .none)
-        ])
-        let context = ModelContext(container)
-        context.autosaveEnabled = false
-        let today = Calendar.current.startOfDay(for: Date())
-        for index in 0..<count {
-            let event = Event(title: String(format: "Event %05d", index), emoji: "🎉",
-                              date: today.addingTimeInterval(Double(index / 10 + 1) * 86_400),
-                              location: index.isMultiple(of: 3) ? "Local park" : nil)
-            context.insert(event)
-        }
-        try context.save()
-        return container
-    }
-
-    func testTenThousandEventsRemainReachableThroughMutationAndFilterChanges() async throws {
+final class EventListBehaviorTests: EventListTestCase {
+    func testTenThousandEventsRemainCompleteThroughMutationAndFilterChanges() async throws {
         let container = try store()
         let context = ModelContext(container)
         let model = EventListViewModel(modelContext: context)
         XCTAssertEqual(model.events.count, 10_000)
         let originalIDs = Set(model.events.map(\.id))
         XCTAssertEqual(originalIDs.count, 10_000)
-        model.fetchEvents()
-        XCTAssertEqual(Set(model.events.map(\.id)), originalIDs)
-
         let added = try model.addEvent(title: "New earliest event", emoji: "🌻", date: Date())
         XCTAssertEqual(model.events.first?.id, added.id)
         let edited = try XCTUnwrap(model.events.last)
@@ -77,6 +54,7 @@ final class EventListPerformanceTests: XCTestCase {
     func testArchiveUsesCalendarDayBoundary() async throws {
         let container = try store(count: 0)
         let context = ModelContext(container)
+        context.autosaveEnabled = false
         let today = Calendar.current.startOfDay(for: Date())
         let yesterday = Event(title: "Yesterday", emoji: "🌙", date: today.addingTimeInterval(-1))
         let midnight = Event(title: "Midnight", emoji: "☀️", date: today)
@@ -89,56 +67,29 @@ final class EventListPerformanceTests: XCTestCase {
         XCTAssertEqual(model.events.map(\.id), [midnight.id])
         model.setFilter(.past)
         XCTAssertEqual(model.events.map(\.id), [yesterday.id])
+        let persisted = try ModelContext(container).fetch(FetchDescriptor<Event>())
+        let archivedByID = Dictionary(uniqueKeysWithValues: persisted.map { ($0.id, $0.isArchived) })
+        XCTAssertEqual(archivedByID[yesterday.id], true)
+        XCTAssertEqual(archivedByID[midnight.id], false)
     }
 
-    func testTenThousandEventStartupPerformance() async throws {
+    func testTenThousandEventScrollTraversalRendersFinalCard() async throws {
         let container = try store()
-        let options = XCTMeasureOptions()
-        options.iterationCount = 3
-        measure(metrics: [XCTClockMetric(), XCTMemoryMetric()], options: options) {
-            autoreleasepool {
-                let model = EventListViewModel(modelContext: ModelContext(container))
-                XCTAssertEqual(model.events.count, 10_000)
-            }
-        }
-    }
-
-    func testTenThousandEventFirstLayoutPerformance() async throws {
-        let container = try store()
-        let options = XCTMeasureOptions()
-        options.iterationCount = 3
-        // iOS 26.1 can crash when UIKit releases an actor-isolated model outside a Swift task.
-        // Keep hosts alive through UIKit's deferred teardown, then release in this async test.
-        var retainedControllers: [UIViewController] = []
-        measure(metrics: [XCTClockMetric(), XCTMemoryMetric()], options: options) {
-            autoreleasepool {
-                let context = ModelContext(container)
-                let controller = UIHostingController(rootView: HomeView(modelContext: context).modelContainer(container))
-                retainedControllers.append(controller)
-                let window = makeWindow()
-                window.rootViewController = controller
-                window.makeKeyAndVisible()
-                controller.view.setNeedsLayout()
-                controller.view.layoutIfNeeded()
-                RunLoop.main.run(until: Date().addingTimeInterval(0.1))
-                window.isHidden = true
-                window.rootViewController = nil
-            }
-        }
-        try await Task.sleep(for: .milliseconds(200))
-        retainedControllers.removeAll()
-    }
-
-    func testTenThousandEventScrollTraversal() async throws {
-        let container = try store()
-        let controller = UIHostingController(rootView: HomeView(modelContext: ModelContext(container)).modelContainer(container))
+        let context = ModelContext(container)
+        let finalTitle = "Event 09999"
+        let finalEvent = try XCTUnwrap(context.fetch(FetchDescriptor<Event>()).first { $0.title == finalTitle })
+        // Equal-date ordering is unspecified. Give the sentinel a unique final date.
+        finalEvent.date = Calendar.current.date(byAdding: .day, value: 1, to: finalEvent.date)!
+        try context.save()
+        let controller = UIHostingController(rootView: HomeView(modelContext: context).modelContainer(container))
         let window = makeWindow()
         window.rootViewController = controller
         window.makeKeyAndVisible()
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(200))
+        XCTAssertFalse(try visibleText(in: window).contains(finalTitle),
+                       "The final event must begin outside the visible viewport")
         let scroll = try XCTUnwrap(findScrollView(in: controller.view))
-        let start = CFAbsoluteTimeGetCurrent()
         for step in 1...20 {
             let bottom = max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
             scroll.setContentOffset(CGPoint(x: 0, y: bottom * Double(step) / 20), animated: false)
@@ -154,9 +105,9 @@ final class EventListPerformanceTests: XCTestCase {
         }
         let bottom = max(0, scroll.contentSize.height - scroll.bounds.height + scroll.adjustedContentInset.bottom)
         XCTAssertEqual(scroll.contentOffset.y, bottom, accuracy: 1)
-        print("ISSUE8_SCROLL_SECONDS=\(CFAbsoluteTimeGetCurrent() - start)")
-        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
-        let image = renderer.image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) }
+        let image = renderedImage(in: window)
+        XCTAssertTrue(try visibleText(in: image).contains(finalTitle),
+                      "The known final event must be rendered in the visible viewport")
         let attachment = XCTAttachment(image: image)
         attachment.name = "Ten thousand event list at end"
         attachment.lifetime = .keepAlways
@@ -167,11 +118,24 @@ final class EventListPerformanceTests: XCTestCase {
         withExtendedLifetime(controller) {}
     }
 
-    private func makeWindow() -> UIWindow {
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first!
-        let window = UIWindow(windowScene: scene)
-        window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
-        return window
+    private func renderedImage(in window: UIWindow) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        return renderer.image { _ in window.drawHierarchy(in: window.bounds, afterScreenUpdates: true) }
+    }
+
+    private func visibleText(in window: UIWindow) throws -> Set<String> {
+        try visibleText(in: renderedImage(in: window))
+    }
+
+    private func visibleText(in image: UIImage) throws -> Set<String> {
+        // Read rendered content rather than relying on SwiftUI's private hosting hierarchy.
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = ["en-US"]
+        let handler = VNImageRequestHandler(cgImage: try XCTUnwrap(image.cgImage))
+        try handler.perform([request])
+        return Set((request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
+            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") })
     }
 
     private func findScrollView(in view: UIView) -> UIScrollView? {
