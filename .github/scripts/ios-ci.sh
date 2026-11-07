@@ -17,7 +17,7 @@ test_filters=(
   -only-testing:ForwardUITests/SimulatorSampleDataUITests/testArchivedEventRescheduledToTodayMovesListsAndPersists
 )
 build_args=(
-  -project Forward.xcodeproj
+  -project Forward-CI-Intentional-Failure.xcodeproj
   -scheme Forward
   -configuration Debug
   -destination "platform=iOS Simulator,id=$SIMULATOR_ID"
