@@ -89,7 +89,7 @@ final class EventListViewModel: ObservableObject {
     
     /// Updates the active filter and refreshes the list
     func setFilter(_ newFilter: EventListFilter) {
-        guard newFilter != filter else { return }
+        guard !isSelectionMode, newFilter != filter else { return }
         filter = newFilter
         fetchEvents()
     }

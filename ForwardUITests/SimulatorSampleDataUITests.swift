@@ -64,12 +64,10 @@ final class SimulatorSampleDataUITests: XCTestCase {
         launch(reset: true)
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
         attachScreenshot("Sample upcoming events")
-        app.buttons["FutureJoy"].tap()
-        app.buttons["Past"].tap()
+        app.segmentedControls.buttons["Past"].tap()
         XCTAssertTrue(card("Board game night").waitForExistence(timeout: 5))
         attachScreenshot("Sample archived events")
-        app.buttons["PastJoy"].tap()
-        app.buttons["Future"].tap()
+        app.segmentedControls.buttons["Future"].tap()
 
         card("Stargazing picnic").tap()
         app.buttons["Edit event"].tap()
@@ -298,8 +296,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
 
     func testSavingArchivedEventWithPastDateKeepsItArchived() {
         launch(reset: true)
-        app.buttons["FutureJoy"].tap()
-        app.buttons["Past"].tap()
+        app.segmentedControls.buttons["Past"].tap()
         card("Board game night").tap()
         app.buttons["Edit event"].tap()
         app.buttons["Save changes"].tap()
@@ -309,16 +306,14 @@ final class SimulatorSampleDataUITests: XCTestCase {
         launch(reset: false)
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
         XCTAssertFalse(card("Board game night").exists)
-        app.buttons["FutureJoy"].tap()
-        app.buttons["Past"].tap()
+        app.segmentedControls.buttons["Past"].tap()
         XCTAssertTrue(card("Board game night").waitForExistence(timeout: 5))
     }
 
     private func assertArchivedEventReschedules(to targetDate: Date) throws {
         let title = "Board game night"
         launch(reset: true)
-        app.buttons["FutureJoy"].tap()
-        app.buttons["Past"].tap()
+        app.segmentedControls.buttons["Past"].tap()
         XCTAssertTrue(card(title).waitForExistence(timeout: 5))
         card(title).tap()
         app.buttons["Edit event"].tap()
@@ -358,11 +353,10 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
         attachScreenshot("Rescheduled archived event")
         app.buttons["Back"].tap()
-        XCTAssertTrue(app.buttons["PastJoy"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls.buttons["Past"].isSelected)
         XCTAssertTrue(card(title).waitForNonExistence(timeout: 5), "A rescheduled event must leave Past")
         XCTAssertTrue(card("Lakeside sketching afternoon").exists)
-        app.buttons["PastJoy"].tap()
-        app.buttons["Future"].tap()
+        app.segmentedControls.buttons["Future"].tap()
         scroll(until: card(title), direction: .up)
         XCTAssertTrue(card(title).isHittable)
         XCTAssertEqual(cards(title).count, 1)
@@ -376,8 +370,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
         card(title).tap()
         XCTAssertTrue(app.staticTexts[formatter.string(from: targetDate)].waitForExistence(timeout: 5))
         app.buttons["Back"].tap()
-        app.buttons["FutureJoy"].tap()
-        app.buttons["Past"].tap()
+        app.segmentedControls.buttons["Past"].tap()
         XCTAssertTrue(card("Lakeside sketching afternoon").waitForExistence(timeout: 5))
         XCTAssertFalse(card(title).exists)
     }
