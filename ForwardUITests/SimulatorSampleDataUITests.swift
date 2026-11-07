@@ -119,6 +119,33 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(card(lastTitle).isHittable)
     }
 
+    func testLongTitleHasRoomToWrapAndStillOpensAndDeletes() {
+        launch(reset: true)
+        let title = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
+        let eventCard = card(title)
+        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
+        scroll(until: app.buttons["Delete \(title)"], direction: .up)
+        app.scrollViews.firstMatch.swipeUp()
+        let titleText = app.staticTexts[title]
+        XCTAssertTrue(titleText.isHittable)
+        attachScreenshot("Long title at bottom of sample list")
+        XCTAssertGreaterThan(titleText.frame.width, eventCard.frame.width / 2,
+                             "The long title must not be squeezed into a narrow column by the badge, emojis, and controls")
+
+        titleText.tap()
+        XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5))
+        app.buttons["Back"].tap()
+        scroll(until: app.buttons["Delete \(title)"], direction: .up)
+        app.buttons["Delete \(title)"].tap()
+        XCTAssertTrue(app.alerts.buttons["Delete"].waitForExistence(timeout: 5))
+        app.alerts.buttons["Delete"].tap()
+        XCTAssertFalse(eventCard.exists)
+        XCTAssertTrue(card("Weekend baking workshop").exists)
+        launch(reset: false)
+        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
+        XCTAssertFalse(eventCard.exists)
+    }
+
     func testDateEditReordersCardsWhenReturningFromDetail() throws {
         launch(reset: true)
         let title = "Stargazing picnic"
@@ -162,6 +189,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(previouslyLast.isHittable)
         XCTAssertLessThan(previouslyLast.frame.minY, card(title).frame.minY,
                           "Returning from detail must put the edited event after the previously last event")
+        attachScreenshot("Long title in the middle after date edit")
 
         launch(reset: false)
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))

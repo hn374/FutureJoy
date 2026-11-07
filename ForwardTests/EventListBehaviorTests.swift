@@ -8,6 +8,47 @@ import Vision
 
 @MainActor
 final class EventListBehaviorTests: EventListTestCase {
+    func testEventCardsRenderCompleteTextAtNarrowWidthsAndLargeTextSizes() throws {
+        let longTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
+        let variants: [(String, String, String?)] = [
+            ("Concert Night", "🎸", nil),
+            ("Concert Night", "🎒🌲", "Fernwood Valley"),
+            (longTitle, "🎸", nil),
+            (longTitle, "🎒🌲", "Fernwood Valley")
+        ]
+        for width: CGFloat in [375, 402] {
+            for size: DynamicTypeSize in [.large, .xxxLarge, .accessibility5] {
+                for (index, variant) in variants.enumerated() {
+                    let (title, emoji, location) = variant
+                    let event = Event(title: title, emoji: emoji, date: Date(), location: location)
+                    let renderer = ImageRenderer(content:
+                        EventRowView(event: event, onDelete: {})
+                            .environment(\.dynamicTypeSize, size)
+                            .environment(\.locale, Locale(identifier: "en_US"))
+                            .frame(width: width - 40)
+                            .padding(20)
+                            .background(Color.white)
+                    )
+                    renderer.scale = 2
+                    let image = try XCTUnwrap(renderer.uiImage)
+                    let name = "Card \(Int(width))pt \(size) variant \(index)"
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = name
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+                    let text = try recognizedLines(in: image).joined(separator: "\n")
+                        .replacingOccurrences(of: "-\\s+", with: "", options: .regularExpression)
+                    let words = Set(text.lowercased()
+                        .split(whereSeparator: { !$0.isLetter }).map(String.init))
+                    let expected = Set((title + " " + (location ?? "")).lowercased()
+                        .split(whereSeparator: { !$0.isLetter }).map(String.init))
+                    XCTAssertTrue(expected.isSubset(of: words),
+                                  "\(name) must render every title and location word; missing \(expected.subtracting(words))")
+                }
+            }
+        }
+    }
+
     func testTenThousandEventsRemainCompleteThroughMutationAndFilterChanges() async throws {
         let container = try store()
         let context = ModelContext(container)
@@ -128,14 +169,20 @@ final class EventListBehaviorTests: EventListTestCase {
     }
 
     private func visibleText(in image: UIImage) throws -> Set<String> {
+        Set(try recognizedLines(in: image))
+    }
+
+    private func recognizedLines(in image: UIImage) throws -> [String] {
         // Read rendered content rather than relying on SwiftUI's private hosting hierarchy.
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
         let handler = VNImageRequestHandler(cgImage: try XCTUnwrap(image.cgImage))
         try handler.perform([request])
-        return Set((request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") })
+        return (request.results ?? [])
+            .sorted { $0.boundingBox.midY > $1.boundingBox.midY }
+            .compactMap { $0.topCandidates(1).first?.string }
+            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
     }
 
     private func findScrollView(in view: UIView) -> UIScrollView? {

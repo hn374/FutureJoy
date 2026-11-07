@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct EventRowView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     let event: Event
     let onDelete: () -> Void
     let selectionMode: Bool
@@ -39,59 +41,50 @@ struct EventRowView: View {
     }
     
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            daysCounterBadge
-                .frame(width: 100, height: 100, alignment: .center)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                // Top row: Emoji + Title + Delete / Select button
-                HStack(alignment: .center) {
-                    HStack(spacing: 8) {
-                        Text(event.emoji)
-                            .font(.system(size: 24))
-                        
-                        Text(event.title)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                Text(event.title)
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if selectionMode {
+                    selectionCheckbox
+                } else {
+                    Button {
+                        onDelete()
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.body)
+                            .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.75))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
-                    
-                    Spacer()
-                    
-                    if selectionMode {
-                        selectionCheckbox
-                    } else {
-                        Button {
-                            onDelete()
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 18))
-                                .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.75))
-                        }
-                        .accessibilityLabel("Delete \(event.title)")
-                    }
+                    .accessibilityLabel("Delete \(event.title)")
                 }
-                
-                // Date
-                Text(formattedDate)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
-                
-                // Location (if available)
-                if let location = event.location, !location.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
-                        Text(location)
-                            .font(.system(size: 15))
-                            .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
-                
             }
-            .frame(maxHeight: .infinity, alignment: .center)
+
+            let detailsLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+            detailsLayout {
+                daysCounterBadge
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(event.emoji)
+                        .font(.title2)
+                    Text(formattedDate)
+                        .font(.subheadline.weight(.medium))
+                    if let location = event.location, !location.isEmpty {
+                        Label(location, systemImage: "mappin.and.ellipse")
+                            .font(.subheadline)
+                    }
+                }
+                .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.55))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(20)
         .background(Color.white)
@@ -147,6 +140,8 @@ struct EventRowView: View {
                         .foregroundColor(.white)
                 }
             }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -161,7 +156,7 @@ struct EventRowView: View {
             
             let view = VStack(spacing: 2) {
                 Text("\(value)")
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.largeTitle.weight(.bold))
                     .foregroundColor(.white)
                 
                 let label: String = {
@@ -173,10 +168,12 @@ struct EventRowView: View {
                 }()
                 
                 Text(label)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.caption.weight(.medium))
                     .foregroundColor(.white.opacity(0.9))
             }
-            .frame(width: 100, height: 100)
+            .padding(12)
+            .frame(minWidth: 100, minHeight: 100)
+            .fixedSize()
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
