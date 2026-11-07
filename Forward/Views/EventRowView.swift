@@ -53,6 +53,9 @@ struct EventRowView: View {
                         Text(event.title)
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(Color(red: 0.15, green: 0.15, blue: 0.2))
+                            .lineLimit(3)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     
                     Spacer()

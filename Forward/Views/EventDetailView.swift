@@ -269,7 +269,8 @@ struct EventDetailView: View {
         ) {
             if isEditing {
                 VStack(alignment: .leading, spacing: 10) {
-                    TextField("Event name", text: $editedTitle)
+                    TextField("Event name", text: $editedTitle, axis: .vertical)
+                        .accessibilityIdentifier("event-title-editor")
                         .font(.system(size: 16, weight: .semibold))
                         .padding(12)
                         .background(Color(red: 0.97, green: 0.97, blue: 0.99))

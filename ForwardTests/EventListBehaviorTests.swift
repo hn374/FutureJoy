@@ -8,6 +8,59 @@ import Vision
 
 @MainActor
 final class EventListBehaviorTests: EventListTestCase {
+    func testEventCardsTruncateLongTitlesAndKeepMetadataReadable() throws {
+        let longTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
+        let variants: [(String, String, String?)] = [
+            ("North\nEast\nSouth\nNever", "🎸", nil),
+            ("Concert Night", "🎸", nil),
+            ("Concert Night", "🎒🌲", "Fernwood Valley"),
+            (longTitle, "🎸", nil),
+            (longTitle, "🎒🌲", "Fernwood Valley")
+        ]
+        for width: CGFloat in [375, 402] {
+            for size: DynamicTypeSize in [.large, .xxxLarge, .accessibility5] {
+                for (index, variant) in variants.enumerated() {
+                    let (title, emoji, location) = variant
+                    let date = try XCTUnwrap(Calendar(identifier: .gregorian).date(from:
+                        DateComponents(year: 2030, month: 6, day: 15, hour: 12)))
+                    let event = Event(title: title, emoji: emoji, date: date, location: location)
+                    let renderer = ImageRenderer(content:
+                        EventRowView(event: event, onDelete: {})
+                            .environment(\.dynamicTypeSize, size)
+                            .environment(\.locale, Locale(identifier: "en_US"))
+                            .frame(width: width - 40)
+                            .padding(20)
+                            .background(Color.white)
+                    )
+                    renderer.scale = 2
+                    let image = try XCTUnwrap(renderer.uiImage)
+                    let name = "Card \(Int(width))pt \(size) variant \(index)"
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = name
+                    attachment.lifetime = .keepAlways
+                    add(attachment)
+                    let text = try recognizedLines(in: image).joined(separator: "\n")
+                        .replacingOccurrences(of: "-\\s+", with: "", options: .regularExpression)
+                    let words = Set(text.lowercased()
+                        .split(whereSeparator: { !$0.isLetter }).map(String.init))
+                    let visibleTitle = title == longTitle ? "" : title.replacingOccurrences(of: "\nNever", with: "")
+                    let expected = Set((visibleTitle + " " + (location ?? "")).lowercased()
+                        .split(whereSeparator: { !$0.isLetter }).map(String.init))
+                    XCTAssertTrue(expected.isSubset(of: words),
+                                  "\(name) must render short titles and location; missing \(expected.subtracting(words))")
+                    XCTAssertTrue(text.contains("2030"), "\(name) must keep the event date readable")
+                    if title == longTitle {
+                        XCTAssertFalse(words.contains("detours"), "\(name) must truncate the long title")
+                    } else if title.contains("\nNever") {
+                        XCTAssertFalse(words.contains("never"), "\(name) must omit the fourth line")
+                        XCTAssertTrue(text.contains("…") || text.contains("..."),
+                                      "\(name) must indicate truncation with an ellipsis: \(text)")
+                    }
+                }
+            }
+        }
+    }
+
     func testTenThousandEventsRemainCompleteThroughMutationAndFilterChanges() async throws {
         let container = try store()
         let context = ModelContext(container)
@@ -128,14 +181,20 @@ final class EventListBehaviorTests: EventListTestCase {
     }
 
     private func visibleText(in image: UIImage) throws -> Set<String> {
+        Set(try recognizedLines(in: image))
+    }
+
+    private func recognizedLines(in image: UIImage) throws -> [String] {
         // Read rendered content rather than relying on SwiftUI's private hosting hierarchy.
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["en-US"]
         let handler = VNImageRequestHandler(cgImage: try XCTUnwrap(image.cgImage))
         try handler.perform([request])
-        return Set((request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") })
+        return (request.results ?? [])
+            .sorted { $0.boundingBox.midY > $1.boundingBox.midY }
+            .compactMap { $0.topCandidates(1).first?.string }
+            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
     }
 
     private func findScrollView(in view: UIView) -> UIScrollView? {
