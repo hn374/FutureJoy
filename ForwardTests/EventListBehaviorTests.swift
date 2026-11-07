@@ -8,9 +8,10 @@ import Vision
 
 @MainActor
 final class EventListBehaviorTests: EventListTestCase {
-    func testEventCardsRenderCompleteTextAtNarrowWidthsAndLargeTextSizes() throws {
+    func testEventCardsTruncateLongTitlesAndKeepMetadataReadable() throws {
         let longTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
         let variants: [(String, String, String?)] = [
+            ("North\nEast\nSouth\nNever", "🎸", nil),
             ("Concert Night", "🎸", nil),
             ("Concert Night", "🎒🌲", "Fernwood Valley"),
             (longTitle, "🎸", nil),
@@ -20,7 +21,9 @@ final class EventListBehaviorTests: EventListTestCase {
             for size: DynamicTypeSize in [.large, .xxxLarge, .accessibility5] {
                 for (index, variant) in variants.enumerated() {
                     let (title, emoji, location) = variant
-                    let event = Event(title: title, emoji: emoji, date: Date(), location: location)
+                    let date = try XCTUnwrap(Calendar(identifier: .gregorian).date(from:
+                        DateComponents(year: 2030, month: 6, day: 15, hour: 12)))
+                    let event = Event(title: title, emoji: emoji, date: date, location: location)
                     let renderer = ImageRenderer(content:
                         EventRowView(event: event, onDelete: {})
                             .environment(\.dynamicTypeSize, size)
@@ -40,10 +43,19 @@ final class EventListBehaviorTests: EventListTestCase {
                         .replacingOccurrences(of: "-\\s+", with: "", options: .regularExpression)
                     let words = Set(text.lowercased()
                         .split(whereSeparator: { !$0.isLetter }).map(String.init))
-                    let expected = Set((title + " " + (location ?? "")).lowercased()
+                    let visibleTitle = title == longTitle ? "" : title.replacingOccurrences(of: "\nNever", with: "")
+                    let expected = Set((visibleTitle + " " + (location ?? "")).lowercased()
                         .split(whereSeparator: { !$0.isLetter }).map(String.init))
                     XCTAssertTrue(expected.isSubset(of: words),
-                                  "\(name) must render every title and location word; missing \(expected.subtracting(words))")
+                                  "\(name) must render short titles and location; missing \(expected.subtracting(words))")
+                    XCTAssertTrue(text.contains("2030"), "\(name) must keep the event date readable")
+                    if title == longTitle {
+                        XCTAssertFalse(words.contains("detours"), "\(name) must truncate the long title")
+                    } else if title.contains("\nNever") {
+                        XCTAssertFalse(words.contains("never"), "\(name) must omit the fourth line")
+                        XCTAssertTrue(text.contains("…") || text.contains("..."),
+                                      "\(name) must indicate truncation with an ellipsis: \(text)")
+                    }
                 }
             }
         }

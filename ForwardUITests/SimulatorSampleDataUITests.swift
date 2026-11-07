@@ -73,11 +73,13 @@ final class SimulatorSampleDataUITests: XCTestCase {
 
         card("Stargazing picnic").tap()
         app.buttons["Edit event"].tap()
-        let name = app.textFields["Event name"]
+        let name = app.descendants(matching: .any)["event-title-editor"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.tap()
+        // Start deletion at the end, rather than the cursor position chosen by a center tap.
+        name.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.95)).tap()
         let text = name.value as? String ?? ""
         name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: text.count) + "My sample picnic")
+        XCTAssertEqual(name.value as? String, "My sample picnic")
         app.buttons["Save changes"].tap()
         app.buttons["Back"].tap()
         XCTAssertTrue(card("My sample picnic").waitForExistence(timeout: 5))
@@ -140,7 +142,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
     }
 
     func testSelectionSurvivesScrollingAndDeletesOnlySelectedEvent() {
-        launch(reset: true)
+        launch(reset: true, profile: "edge-cases")
         let selectedTitle = "Coffee and a good book"
         let lastTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
         XCTAssertTrue(card(selectedTitle).waitForExistence(timeout: 10))
@@ -150,10 +152,8 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 5))
 
         let last = app.staticTexts[lastTitle]
-        for _ in 0..<8 {
-            if !selected.isHittable { break }
-            app.scrollViews.firstMatch.swipeUp()
-        }
+        // Six upcoming cards ensure this exercises scrolling even with compact titles.
+        scroll(until: last, direction: .up, fullyVisible: true)
         XCTAssertTrue(last.isHittable)
         XCTAssertFalse(selected.isHittable, "The selected card must leave the visible viewport")
         scroll(until: selected, direction: .down)
@@ -166,7 +166,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertFalse(card(selectedTitle).exists)
         XCTAssertTrue(card("Stargazing picnic").waitForExistence(timeout: 5))
 
-        launch(reset: false)
+        launch(reset: false, profile: "edge-cases")
         XCTAssertTrue(card("Stargazing picnic").waitForExistence(timeout: 10))
         XCTAssertTrue(card("Weekend baking workshop").exists)
         XCTAssertFalse(card(selectedTitle).exists)
@@ -174,7 +174,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(card(lastTitle).isHittable)
     }
 
-    func testLongTitleHasRoomToWrapAndStillOpensAndDeletes() {
+    func testTruncatedTitleOpensFullTitleForEditingAndStillDeletes() {
         launch(reset: true)
         let title = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
         let eventCard = card(title)
@@ -184,10 +184,16 @@ final class SimulatorSampleDataUITests: XCTestCase {
         let titleText = app.staticTexts[title]
         XCTAssertTrue(titleText.isHittable)
         attachScreenshot("Long title at bottom of sample list")
-        XCTAssertGreaterThan(titleText.frame.width, eventCard.frame.width / 2,
-                             "The long title must not be squeezed into a narrow column by the badge, emojis, and controls")
 
         titleText.tap()
+        XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5))
+        app.buttons["Edit event"].tap()
+        let titleEditor = app.descendants(matching: .any)["event-title-editor"]
+        scroll(until: titleEditor, direction: .up, fullyVisible: true)
+        XCTAssertTrue(titleEditor.isHittable)
+        XCTAssertEqual(titleEditor.value as? String, title)
+        attachScreenshot("Full long title in edit screen")
+        app.buttons["Save changes"].tap()
         XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5))
         app.buttons["Back"].tap()
         scroll(until: app.buttons["Delete \(title)"], direction: .up)
@@ -196,9 +202,6 @@ final class SimulatorSampleDataUITests: XCTestCase {
         app.alerts.buttons["Delete"].tap()
         XCTAssertFalse(eventCard.exists)
         XCTAssertTrue(card("Weekend baking workshop").exists)
-        launch(reset: false)
-        XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
-        XCTAssertFalse(eventCard.exists)
     }
 
     func testLongCardRemainsUsableAtLargestAccessibilityTextSize() {
@@ -295,9 +298,9 @@ final class SimulatorSampleDataUITests: XCTestCase {
         }
     }
 
-    private func launch(reset: Bool) {
+    private func launch(reset: Bool, profile: String = "typical") {
         app.terminate()
-        app.launchArguments = ["--sample-data"] + (reset ? ["--reset-sample-data"] : [])
+        app.launchArguments = ["--sample-data", "--sample-profile", profile] + (reset ? ["--reset-sample-data"] : [])
         app.launch()
     }
 
