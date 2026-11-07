@@ -29,23 +29,27 @@ struct HomeView: View {
                         headerView(scrollProxy: proxy)
 
                         ScrollView {
-                            LazyVStack(spacing: 16) {
-                                // Add New Event Button (future events only)
-                                if viewModel.filter == .future {
-                                    addEventButton
+                            VStack(spacing: 0) {
+                                // Keep the calendar's scroll target at a non-lazy content origin.
+                                Color.clear
+                                    .frame(height: 0)
+                                    .id(topAnchorID)
+
+                                LazyVStack(spacing: 16) {
+                                    // Add New Event Button (future events only)
+                                    if viewModel.filter == .future {
+                                        addEventButton
+                                    }
+
+                                    // Event List
+                                    eventList
                                 }
-                            
-                                // Event List
-                                eventList
+                                .padding(.top, 16)
                             }
-                            .padding(.top, 16)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 32)
-                            .id(topAnchorID)
                         }
-                        .onChange(of: viewModel.filter) {
-                            proxy.scrollTo(topAnchorID, anchor: .top)
-                        }
+                        .id(viewModel.filter)
                     }
                 }
             }
