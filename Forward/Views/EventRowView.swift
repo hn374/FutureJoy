@@ -28,10 +28,14 @@ struct EventRowView: View {
         self.onToggleSelection = onToggleSelection
     }
     
-    private var formattedDate: String {
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM d, yyyy"
-        return formatter.string(from: event.date)
+        return formatter
+    }()
+
+    private var formattedDate: String {
+        Self.dateFormatter.string(from: event.date)
     }
     
     var body: some View {
