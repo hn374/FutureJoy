@@ -5,9 +5,7 @@ Add an event with an emoji and date, watch the countdown, and revisit past event
 
 The app's user-facing name is **Forward**, matching the Xcode project, app target,
 and main scheme. The repository URL and some internal names retain FutureJoy.
-Compatibility paths and identifiers are preserved; see the
-[branding audit and verification checklist](docs/verification/forward-branding.md)
-for retained references and runtime checks.
+Legacy internal names and existing data paths are retained for compatibility.
 
 ## Features
 
