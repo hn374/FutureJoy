@@ -35,9 +35,13 @@ final class EventDetailEmojiUITests: XCTestCase {
         replaceEmoji(with: "🧑🏽‍🚀")
         assertEmoji("🧑🏽‍🚀")
         replaceEmoji(with: "🧑🏽‍🚀🇨🇦")
-        assertEmoji("🧑🏽‍🚀🇨🇦")
+        assertEmoji("🧑🏽‍🚀")
         replaceEmoji(with: "🧑🏽‍🚀🇨🇦🎈")
-        assertEmoji("🧑🏽‍🚀🇨🇦")
+        assertEmoji("🧑🏽‍🚀")
+        let inputScreenshot = XCTAttachment(screenshot: app.screenshot())
+        inputScreenshot.name = "Editing field limited to one composed emoji"
+        inputScreenshot.lifetime = .keepAlways
+        add(inputScreenshot)
 
         // Leaving without saving must discard the edited value.
         app.buttons["xmark"].tap()
@@ -45,7 +49,7 @@ final class EventDetailEmojiUITests: XCTestCase {
         assertEmoji("🌌")
 
         replaceEmoji(with: "👨‍👩‍👧‍👦🌙🎉")
-        assertEmoji("👨‍👩‍👧‍👦🌙")
+        assertEmoji("👨‍👩‍👧‍👦")
         app.buttons["Save changes"].tap()
         app.buttons["Back"].tap()
 
@@ -56,15 +60,49 @@ final class EventDetailEmojiUITests: XCTestCase {
             NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", "Stargazing picnic")
         ).firstMatch
         XCTAssertTrue(event.waitForExistence(timeout: 10))
-        XCTAssertTrue(event.label.contains("👨‍👩‍👧‍👦🌙"))
+        XCTAssertTrue(event.label.contains("👨‍👩‍👧‍👦"))
         event.tap()
         app.buttons["Edit event"].tap()
-        assertEmoji("👨‍👩‍👧‍👦🌙")
+        assertEmoji("👨‍👩‍👧‍👦")
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "Saved composed emoji in event editor"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+    }
+
+    func testLegacyEmojiSurvivesUnrelatedEditAndCancel() {
+        app.buttons["Back"].tap()
+        let event = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", "A wonderfully long weekend adventure")
+        ).firstMatch
+        XCTAssertTrue(event.waitForExistence(timeout: 5))
+        event.tap()
+        app.buttons["Edit event"].tap()
+        assertEmoji("🎒🌲")
+
+        let title = app.textFields["event-title-editor"]
+        title.tap()
+        title.typeText(" updated")
+        app.buttons["Save changes"].tap()
+        app.buttons["Edit event"].tap()
+        assertEmoji("🎒🌲")
+
+        replaceEmoji(with: "🌙🎉")
+        assertEmoji("🌙")
+        app.buttons["xmark"].tap()
+        app.buttons["Back"].tap()
+        app.terminate()
+        app.launchArguments = ["--sample-data"]
+        app.launch()
+        let saved = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@ AND NOT label BEGINSWITH 'Delete '", "updated")
+        ).firstMatch
+        XCTAssertTrue(saved.waitForExistence(timeout: 5))
+        XCTAssertTrue(saved.label.contains("🎒🌲"))
+        saved.tap()
+        app.buttons["Edit event"].tap()
+        assertEmoji("🎒🌲")
     }
 
     private var emojiField: XCUIElement { app.textFields["Emoji"] }
@@ -79,8 +117,8 @@ final class EventDetailEmojiUITests: XCTestCase {
 
     private func replaceEmoji(with value: String) {
         XCTAssertTrue(emojiField.waitForExistence(timeout: 5))
-        // Tap the trailing edge so delete starts after the existing characters.
-        emojiField.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        // Tap after the text but inside the padded field’s editable area.
+        emojiField.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).tap()
         let current = emojiField.value as? String ?? ""
         if !current.isEmpty && current != emojiField.placeholderValue {
             emojiField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))

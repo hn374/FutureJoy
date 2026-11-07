@@ -9,11 +9,13 @@ final class EventCreationEmojiUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments = ["--sample-data", "--reset-sample-data", "--sample-profile", "empty"]
         app.launch()
     }
 
     override func tearDownWithError() throws {
         app.terminate()
+        app.launchArguments = ["--sample-data", "--sample-profile", "empty"]
         app.launch()
         for title in createdTitles {
             let delete = app.buttons["Delete \(title)"]
@@ -35,6 +37,7 @@ final class EventCreationEmojiUITests: XCTestCase {
         attachScreenshot(named: "Saved event with custom emoji")
 
         app.terminate()
+        app.launchArguments = ["--sample-data", "--sample-profile", "empty"]
         app.launch()
         assertCard(title, emoji: "🧑🏽‍🚀")
         openEditor(title, expectedEmoji: "🧑🏽‍🚀")
@@ -72,15 +75,20 @@ final class EventCreationEmojiUITests: XCTestCase {
         reveal(app.buttons["🎂"])
         app.buttons["🎂"].tap()
         replaceEmoji(with: "🦦🌙")
-        saveAndAssertCard(customTitle, emoji: "🦦🌙")
-        openEditor(customTitle, expectedEmoji: "🦦🌙")
+        saveAndAssertCard(customTitle, emoji: "🦦")
+        openEditor(customTitle, expectedEmoji: "🦦")
     }
 
     func testCreateEventLimitsCustomEmojiWithoutSplittingCharacters() {
         let title = openCreation()
         replaceEmoji(with: "🧑🏽‍🚀🌙🎈")
-        saveAndAssertCard(title, emoji: "🧑🏽‍🚀🌙")
-        openEditor(title, expectedEmoji: "🧑🏽‍🚀🌙")
+        assertEmoji("🧑🏽‍🚀")
+        pasteEmoji("🌙")
+        assertEmoji("🧑🏽‍🚀")
+        dismissKeyboard()
+        attachScreenshot(named: "Creation field limited to one composed emoji")
+        saveAndAssertCard(title, emoji: "🧑🏽‍🚀")
+        openEditor(title, expectedEmoji: "🧑🏽‍🚀")
     }
 
     @discardableResult
@@ -105,19 +113,28 @@ final class EventCreationEmojiUITests: XCTestCase {
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
         }
         if !text.isEmpty {
-            // Paste through the system menu: typeText cannot synthesize emoji keys.
-            UIPasteboard.general.string = text
-            field.press(forDuration: 1.2)
-            let paste = app.menuItems["Paste"]
-            if paste.waitForExistence(timeout: 2) {
-                paste.tap()
-            } else {
-                app.buttons["Paste"].tap()
-            }
-            let allowPaste = app.alerts.buttons["Allow Paste"]
-            if allowPaste.waitForExistence(timeout: 1) {
-                allowPaste.tap()
-            }
+            pasteEmoji(text)
+        }
+    }
+
+    private func assertEmoji(_ expected: String) {
+        expectation(for: NSPredicate(format: "value == %@", expected), evaluatedWith: app.textFields["Emoji"])
+        waitForExpectations(timeout: 3)
+    }
+
+    private func pasteEmoji(_ text: String) {
+        // Paste through the system menu: typeText cannot synthesize emoji keys.
+        UIPasteboard.general.string = text
+        app.textFields["Emoji"].press(forDuration: 1.2)
+        let paste = app.menuItems["Paste"]
+        if paste.waitForExistence(timeout: 2) {
+            paste.tap()
+        } else {
+            app.buttons["Paste"].tap()
+        }
+        let allowPaste = app.alerts.buttons["Allow Paste"]
+        if allowPaste.waitForExistence(timeout: 1) {
+            allowPaste.tap()
         }
     }
 
