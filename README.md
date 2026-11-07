@@ -1,4 +1,181 @@
-# FutureJoy
+# Forward
+
+Forward is an iOS app for keeping track of events you are looking forward to.
+Add an event with an emoji and date, watch the countdown, and revisit past events.
+
+The app is being renamed from **FutureJoy** to **Forward**. The repository URL,
+some source filenames, and the current in-app title still use FutureJoy; the
+Xcode project, app target, and main scheme are named Forward.
+
+## Features
+
+- Create events for today or a future date, with a preset or custom emoji,
+  optional location, and notes.
+- Browse **Future** events in date order, with the nearest event first, or switch
+  to **Past** to see archived events with the most recent first.
+- Open an event for a detailed countdown and edit its title, emoji, date,
+  location, or notes. Rescheduling an archived event to today or later returns
+  it to Future.
+- Delete one event or select several and confirm a bulk deletion.
+- Keep events across launches with SwiftData. Normal mode attempts CloudKit;
+  simulator sample mode uses isolated local stores.
+
+## App walkthrough
+
+```mermaid
+flowchart LR
+    Future[Future events] --> Create[Add New Event]
+    Create --> Save[Choose name, date and emoji]
+    Save --> Future
+    Future --> Detail[Event details and editing]
+    Future <--> Past[Past events]
+    Past --> Detail
+```
+
+Start in **Future**, tap **Add New Event**, and save an event to see its countdown
+card. Tap a card to open its details and use the edit control to make changes.
+Switch to **Past** to review archived events. Events before today are archived
+when the list refreshes on startup or when returning to the home screen; today's
+events stay in Future. Use the [Typical sample profile](#simulator-sample-data)
+to explore both lists without entering your own events.
+
+## Requirements
+
+- A Mac with **Xcode 26.1.1**, the toolchain pinned by CI and used for local
+  verification. Older Xcode versions are not verified.
+- **iOS 26.1 or later** on the destination device; the project deployment target
+  is iOS 26.1. CI uses the iOS 26.1 simulator runtime and an iPhone 17.
+- Git to clone the repository. There are no third-party package dependencies to
+  install.
+
+In Xcode Settings, open **Components** and install the iOS 26.1 simulator runtime
+if it is missing. Confirm the selected command-line toolchain and runtimes:
+
+```sh
+export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+xcodebuild -version
+xcrun simctl list runtimes
+```
+
+If Xcode is installed elsewhere, adjust `DEVELOPER_DIR` to that installation's
+`Contents/Developer` directory.
+
+## Build and run locally
+
+```sh
+git clone https://github.com/hn374/FutureJoy.git
+cd FutureJoy
+open Forward.xcodeproj
+```
+
+1. Select the shared **Forward** scheme and an iOS 26.1 or later simulator.
+2. Use the **Debug** build configuration (the scheme's Run default).
+3. For fictional data, enable `--sample-data` under **Product → Scheme → Edit
+   Scheme → Run → Arguments** as described [below](#simulator-sample-data).
+   Leave it off to use normal persistence.
+4. Choose **Product → Run** (`⌘R`). The current home-screen heading is FutureJoy.
+
+Simulator builds use the default simulator signing and do not require Apple
+credentials. Keep signing enabled: normal-mode CloudKit initialization needs the
+app's entitlements, including for the app-hosted unit tests.
+
+For a compile-only simulator check from the repository root (no simulator boot):
+
+```sh
+xcodebuild build -project Forward.xcodeproj -scheme Forward \
+  -configuration Debug -destination 'generic/platform=iOS Simulator' \
+  -derivedDataPath /tmp/ForwardDerivedData
+```
+
+### Schemes and device setup
+
+| Scheme | Purpose and current status |
+| --- | --- |
+| **Forward** | Shared, supported app scheme. Use it for running, building, and testing. Includes `ForwardTests` and `ForwardUITests`. |
+| **Forward Dev** | Additional target/scheme that may appear in Xcode. It currently excludes the app entry point, model, and views from target membership; use Forward for development. |
+
+To run on a physical device, select your own development team under the Forward
+target's **Signing & Capabilities** and configure signing for a bundle identifier
+and iCloud container you control. The repository currently references
+`Hoang.Forward` and `iCloud.Hoang.Forward`; the container in
+`Forward/FutureJoyApp.swift` and the iCloud entitlement must agree if you change
+it. Physical-device signing and CloudKit sync need separate verification with
+your developer account. Sample mode is available only in Debug simulator builds.
+
+## Project structure
+
+```text
+Forward.xcodeproj/        Project and shared Forward scheme
+Forward/
+  FutureJoyApp.swift      App entry point and normal persistence setup
+  Models/                SwiftData Event model
+  ViewModels/            Event lists, archiving, selection, and mutations
+  Views/                 Home, event cards, creation, and detail/edit screens
+  Development/           Simulator-only sample profiles and stores
+  Utils/                 Emoji input and a local-to-CloudKit migration utility
+  Assets.xcassets/       App icons and colors
+ForwardTests/            Unit, persistence, behavior, and opt-in benchmark tests
+ForwardUITests/          UI interaction and launch tests
+.github/                 CI workflow and local CI test script
+```
+
+The app uses SwiftUI with a view model coordinating event queries and mutations
+through SwiftData's `ModelContext`. `Forward/tech_design.md` is an older design
+note; some of its feature, setup, and testing descriptions predate the current
+implementation.
+
+## Data storage
+
+Normal startup first tries a SwiftData container backed by the private CloudKit
+database `iCloud.Hoang.Forward`. If that container cannot initialize, it opens a
+local-only store at `Documents/FutureJoy.store` inside the app sandbox. A
+successful container initialization does not by itself verify cross-device sync.
+
+The local fallback and CloudKit-backed store are separate configurations. A
+migration utility exists in `Forward/Utils/DataMigration.swift`, but startup does
+not call it; do not assume local fallback events are automatically imported if
+CloudKit becomes available later.
+
+Past events are archived records, not deleted records. Explicit deletion removes
+the selected events after confirmation. Sample mode never imports normal data
+and disables CloudKit; its separate store paths and reset behavior are documented
+[below](#simulator-sample-data).
+
+## Running tests
+
+For every test run, including Xcode's Test action, use a **disposable simulator
+signed out of personal iCloud**. Tests reset sample profiles and create or delete
+events in the normal store; do not use a simulator containing data you want to
+keep. Follow the simulator capacity guidance below before starting a run.
+
+Use the shared **Forward** scheme. In Xcode, open the Test navigator to select
+individual tests or choose **Product → Test** (`⌘U`) to run the scheme's full
+inventory. This includes UI launch/performance tests and opt-in benchmarks that
+are excluded from the CI gate. The [CI section](#continuous-integration) provides
+the command for reproducing that smaller gate locally.
+
+For functional unit tests from the terminal, choose a disposable simulator signed
+out of personal iCloud, find its identifier with `xcrun simctl list devices
+available`, and replace `<SIMULATOR_ID>`:
+
+```sh
+xcodebuild test -project Forward.xcodeproj -scheme Forward \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,id=<SIMULATOR_ID>' \
+  -parallel-testing-enabled NO \
+  -only-testing:ForwardTests \
+  -skip-testing:ForwardTests/EventListBenchmarkTests
+```
+
+For UI tests, replace the last two options with `-only-testing:ForwardUITests`.
+To run only the opt-in measurements, use
+`-only-testing:ForwardTests/EventListBenchmarkTests` instead. Benchmarks provide
+measurements for controlled comparisons, not a timing pass/fail budget.
+
+On a shared Mac, inspect `xcrun simctl list devices` and coordinate with other
+users or tasks before starting a simulator or test run. The commands here use one
+explicit destination with parallel testing disabled. Do not run competing tests
+on the same simulator or shut down another user's device to make room.
 
 ## Continuous integration
 
@@ -121,6 +298,7 @@ the tests run. Replace `<SIMULATOR_ID>` below with that simulator's identifier:
 xcodebuild test -project Forward.xcodeproj -scheme Forward \
   -configuration Debug \
   -destination 'platform=iOS Simulator,id=<SIMULATOR_ID>' \
+  -parallel-testing-enabled NO \
   -only-testing:ForwardTests/SampleDataLaunchModeTests \
   -only-testing:ForwardTests/SimulatorSampleStoreTests \
   -only-testing:ForwardUITests/SimulatorSampleDataUITests
@@ -128,3 +306,22 @@ xcodebuild test -project Forward.xcodeproj -scheme Forward \
 
 Keep the simulator's default code signing enabled for normal-mode host startup;
 CloudKit requires the app's entitlements even without a signed-in iCloud account.
+
+## Contributing and reporting issues
+
+Report bugs or propose changes through [GitHub Issues](https://github.com/hn374/FutureJoy/issues).
+For a bug, include the Xcode and iOS versions, whether sample mode is enabled
+(and which profile), steps to reproduce, and the expected and actual behavior.
+Use fictional events in screenshots or logs and remove personal data and secrets.
+
+For a contribution, keep the change focused, add or update tests for observable
+behavior changes, and describe the change and verification in the pull request.
+Run the relevant tests before requesting review; use the CI selection above to
+reproduce the automated gate locally when needed. Required CI remains a merge
+gate; local checks do not replace it. There is no
+separate contribution guide or issue template in the repository at present.
+
+## License
+
+The repository does not currently include a `LICENSE` file. No open-source
+license is declared here; adding one requires a decision by the repository owner.
