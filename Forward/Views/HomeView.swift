@@ -143,17 +143,7 @@ struct HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Picker("Event list", selection: Binding(
-                get: { viewModel.filter },
-                set: { viewModel.setFilter($0) }
-            )) {
-                ForEach(EventListFilter.allCases, id: \.self) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .disabled(viewModel.isSelectionMode)
-            .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
+            listSelector
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 24)
@@ -173,6 +163,46 @@ struct HomeView: View {
             )
             .ignoresSafeArea(edges: .top)
         }
+    }
+
+    private var listSelector: some View {
+        HStack(spacing: 3) {
+            ForEach(EventListFilter.allCases, id: \.self) { filter in
+                let isSelected = viewModel.filter == filter
+                Button {
+                    viewModel.setFilter(filter)
+                } label: {
+                    Text(filter.title)
+                        .font(.callout.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .foregroundStyle(isSelected ? Color(red: 0.42, green: 0.31, blue: 0.81) : .white)
+                        .background {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected ? Color.white : .clear)
+                                .shadow(color: .black.opacity(isSelected ? 0.12 : 0), radius: 2, y: 1)
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(.black.opacity(0.1), in: RoundedRectangle(cornerRadius: 11))
+        .opacity(viewModel.isSelectionMode ? 0.5 : 1)
+        .accessibilityRepresentation {
+            Picker("Event list", selection: Binding(
+                get: { viewModel.filter },
+                set: { viewModel.setFilter($0) }
+            )) {
+                ForEach(EventListFilter.allCases, id: \.self) { filter in
+                    Text(filter.title).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
+        }
+        .disabled(viewModel.isSelectionMode)
     }
 
     private var appTitle: some View {
