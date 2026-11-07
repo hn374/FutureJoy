@@ -30,21 +30,18 @@ struct HomeView: View {
 
                         ScrollView {
                             LazyVStack(spacing: 16) {
-                                Color.clear
-                                    .frame(height: 20)
-                                    .id(topAnchorID)
-                            
                                 // Add New Event Button (future events only)
                                 if viewModel.filter == .future {
                                     addEventButton
-                                        .padding(.bottom, 8)
                                 }
                             
                                 // Event List
                                 eventList
                             }
+                            .padding(.top, 16)
                             .padding(.horizontal, 20)
                             .padding(.bottom, 32)
+                            .id(topAnchorID)
                         }
                         .onChange(of: viewModel.filter) {
                             proxy.scrollTo(topAnchorID, anchor: .top)
@@ -112,43 +109,44 @@ struct HomeView: View {
     
     // MARK: - Header View
     private func headerView(scrollProxy: ScrollViewProxy) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    calendarButton(scrollProxy: scrollProxy)
-                    Spacer(minLength: 0)
-                    appTitle
-                    Spacer(minLength: 0)
-                    selectionControls
-                }
-                VStack(spacing: 12) {
-                    appTitle
-                    HStack {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
                         calendarButton(scrollProxy: scrollProxy)
-                        Spacer()
+                        Spacer(minLength: 0)
+                        appTitle
+                        Spacer(minLength: 0)
                         selectionControls
                     }
+                    VStack(spacing: 12) {
+                        appTitle
+                        HStack {
+                            calendarButton(scrollProxy: scrollProxy)
+                            Spacer()
+                            selectionControls
+                        }
+                    }
+                }
+
+                if viewModel.isSelectionMode {
+                    Text("\(viewModel.selectedEventIDs.count) selected")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 4)
+            .padding(.bottom, 2)
 
-            if viewModel.isSelectionMode {
-                Text("\(viewModel.selectedEventIDs.count) selected")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.white.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                Text(viewModel.filter == .future ? "Track events you're looking forward to!" : "Review events you've already enjoyed.")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.white.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 0) {
+                ForEach(EventListFilter.allCases, id: \.self) { filter in
+                    eventListTab(filter)
+                }
             }
-
-            listSelector
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
-        .padding(.bottom, 20)
         .background {
             LinearGradient(
                 colors: [
@@ -159,50 +157,44 @@ struct HomeView: View {
                 endPoint: .bottomTrailing
             )
             .clipShape(
-                RoundedCornerShape(corners: [.bottomLeft, .bottomRight], radius: 32)
+                RoundedCornerShape(corners: [.bottomLeft, .bottomRight], radius: 16)
             )
             .ignoresSafeArea(edges: .top)
         }
     }
 
-    private var listSelector: some View {
-        HStack(spacing: 3) {
-            ForEach(EventListFilter.allCases, id: \.self) { filter in
-                let isSelected = viewModel.filter == filter
-                Button {
-                    viewModel.setFilter(filter)
-                } label: {
-                    Text(filter.title)
-                        .font(.callout.weight(.semibold))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .foregroundStyle(isSelected ? Color(red: 0.42, green: 0.31, blue: 0.81) : .white)
-                        .background {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(isSelected ? Color.white : .clear)
-                                .shadow(color: .black.opacity(isSelected ? 0.12 : 0), radius: 2, y: 1)
-                        }
+    private func eventListTab(_ filter: EventListFilter) -> some View {
+        let isSelected = viewModel.filter == filter
+
+        return Button {
+            viewModel.setFilter(filter)
+        } label: {
+            Text(filter.title)
+                .font(.title3.weight(isSelected ? .semibold : .medium))
+                .dynamicTypeSize(.small...)
+                .foregroundStyle(.white)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
+                .padding(.top, 6)
+                .padding(.bottom, 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
+                .overlay(alignment: .bottom) {
+                    if isSelected {
+                        Capsule()
+                            .fill(.white)
+                            .frame(width: 44, height: 3)
+                            .padding(.bottom, 6)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
                 }
-                .buttonStyle(.plain)
-            }
         }
-        .padding(3)
-        .background(.black.opacity(0.1), in: RoundedRectangle(cornerRadius: 11))
-        .opacity(viewModel.isSelectionMode ? 0.5 : 1)
-        .accessibilityRepresentation {
-            Picker("Event list", selection: Binding(
-                get: { viewModel.filter },
-                set: { viewModel.setFilter($0) }
-            )) {
-                ForEach(EventListFilter.allCases, id: \.self) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
-        }
+        .buttonStyle(.plain)
         .disabled(viewModel.isSelectionMode)
+        .accessibilityLabel(filter.title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
     }
 
     private var appTitle: some View {
