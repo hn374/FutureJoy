@@ -11,7 +11,6 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel: EventListViewModel
-    private let headerHeight: CGFloat = 160
     private let topAnchorID = "topAnchor"
     
     init(modelContext: ModelContext) {
@@ -21,36 +20,36 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
-                ZStack(alignment: .top) {
+                ZStack {
                     // Background
                     Color(red: 0.97, green: 0.97, blue: 0.98)
                         .ignoresSafeArea()
                     
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            Color.clear
-                                .frame(height: headerHeight + 12 + (viewModel.filter == .past ? 8 : 0))
-                                .id(topAnchorID)
+                    VStack(spacing: 0) {
+                        headerView(scrollProxy: proxy)
+
+                        ScrollView {
+                            LazyVStack(spacing: 16) {
+                                Color.clear
+                                    .frame(height: 20)
+                                    .id(topAnchorID)
                             
-                            // Add New Event Button (future events only)
-                            if viewModel.filter == .future {
-                                addEventButton
-                                    .padding(.bottom, 8)
+                                // Add New Event Button (future events only)
+                                if viewModel.filter == .future {
+                                    addEventButton
+                                        .padding(.bottom, 8)
+                                }
+                            
+                                // Event List
+                                eventList
                             }
-                            
-                            // Event List
-                            eventList
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 32)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 32)
+                        .onChange(of: viewModel.filter) {
+                            proxy.scrollTo(topAnchorID, anchor: .top)
+                        }
                     }
-                    .ignoresSafeArea(edges: .top)
-                    
-                    // Fixed header
-                    headerView(scrollProxy: proxy)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: headerHeight)
-                        .ignoresSafeArea(edges: .top)
                 }
             }
             .overlay(alignment: .center) {
@@ -94,7 +93,7 @@ struct HomeView: View {
             .onAppear {
                 viewModel.archivePastEvents()
             }
-            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
     
@@ -113,143 +112,153 @@ struct HomeView: View {
     
     // MARK: - Header View
     private func headerView(scrollProxy: ScrollViewProxy) -> some View {
-        ZStack {
-            // Gradient background
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    calendarButton(scrollProxy: scrollProxy)
+                    Spacer(minLength: 0)
+                    appTitle
+                    Spacer(minLength: 0)
+                    selectionControls
+                }
+                VStack(spacing: 12) {
+                    appTitle
+                    HStack {
+                        calendarButton(scrollProxy: scrollProxy)
+                        Spacer()
+                        selectionControls
+                    }
+                }
+            }
+
+            if viewModel.isSelectionMode {
+                Text("\(viewModel.selectedEventIDs.count) selected")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(viewModel.filter == .future ? "Track events you're looking forward to!" : "Review events you've already enjoyed.")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.white.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            listSelector
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+        .background {
             LinearGradient(
-                gradient: Gradient(colors: [
+                colors: [
                     Color(red: 0.45, green: 0.40, blue: 0.95),
                     Color(red: 0.65, green: 0.35, blue: 0.90)
-                ]),
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            
-            VStack(alignment: .leading, spacing: 8) {
-                ZStack {
-                    // Centered title menu (hidden in selection mode to avoid overlap)
-                    if viewModel.isSelectionMode == false {
-                        Menu {
-                            Button {
-                                viewModel.setFilter(.future)
-                            } label: {
-                                Text(viewModel.filter == .future ? "Future ✓" : "Future")
-                            }
-                            
-                            Button {
-                                viewModel.setFilter(.past)
-                            } label: {
-                                Text(viewModel.filter == .past ? "Past ✓" : "Past")
-                            }
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(viewModel.filter == .future ? "FutureJoy" : "PastJoy")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .layoutPriority(1)
-                                    .frame(minWidth: 110, alignment: .center)
-                                
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .padding(.top, 0)
-                            }
-                            .frame(width: 140, alignment: .center)
-                            .animation(.none, value: viewModel.filter)
+            .clipShape(
+                RoundedCornerShape(corners: [.bottomLeft, .bottomRight], radius: 32)
+            )
+            .ignoresSafeArea(edges: .top)
+        }
+    }
+
+    private var listSelector: some View {
+        HStack(spacing: 3) {
+            ForEach(EventListFilter.allCases, id: \.self) { filter in
+                let isSelected = viewModel.filter == filter
+                Button {
+                    viewModel.setFilter(filter)
+                } label: {
+                    Text(filter.title)
+                        .font(.callout.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .foregroundStyle(isSelected ? Color(red: 0.42, green: 0.31, blue: 0.81) : .white)
+                        .background {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(isSelected ? Color.white : .clear)
+                                .shadow(color: .black.opacity(isSelected ? 0.12 : 0), radius: 2, y: 1)
                         }
-                        .menuStyle(.button)
-                        .transition(.opacity)
-                    }
-                    
-                    // Leading/trailing controls
-                    HStack(alignment: .center, spacing: 12) {
-                        // Calendar icon
-                        Button {
-                            withAnimation(.easeInOut) {
-                                scrollProxy.scrollTo(topAnchorID, anchor: .top)
-                            }
-                        } label: {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.white.opacity(0.25))
-                                    .frame(width: 48, height: 48)
-                                
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 22, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Spacer()
-                        
-                        if viewModel.isSelectionMode {
-                            HStack(alignment: .center, spacing: 8) {
-                                Button {
-                                    viewModel.confirmDeleteSelected()
-                                } label: {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(8)
-                                        .background(Color.white.opacity(0.18))
-                                        .clipShape(Circle())
-                                }
-                                .disabled(viewModel.selectedEventIDs.isEmpty)
-                                .opacity(viewModel.selectedEventIDs.isEmpty ? 0.6 : 1)
-                                
-                                Button("Cancel") {
-                                    viewModel.exitSelectionMode()
-                                }
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color.white.opacity(0.18))
-                                .clipShape(Capsule())
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                            }
-                            .padding(.trailing, 4)
-                        } else {
-                            if !viewModel.events.isEmpty {
-                                Button("Select") {
-                                    viewModel.enterSelectionMode()
-                                }
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color.white.opacity(0.18))
-                                .clipShape(Capsule())
-                                .lineLimit(1)
-                                .fixedSize(horizontal: true, vertical: false)
-                            }
-                        }
-                    }
                 }
-                
-                if viewModel.isSelectionMode {
-                    Text("\(viewModel.selectedEventIDs.count) selected")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                } else {
-                    Text(viewModel.filter == .future ? "Track events you're looking forward to!" : "Review events you've already enjoyed.")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(.black.opacity(0.1), in: RoundedRectangle(cornerRadius: 11))
+        .opacity(viewModel.isSelectionMode ? 0.5 : 1)
+        .accessibilityRepresentation {
+            Picker("Event list", selection: Binding(
+                get: { viewModel.filter },
+                set: { viewModel.setFilter($0) }
+            )) {
+                ForEach(EventListFilter.allCases, id: \.self) { filter in
+                    Text(filter.title).tag(filter)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 24)
-            .padding(.top, 60)
-            .padding(.bottom, 32)
+            .pickerStyle(.segmented)
+            .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
         }
-        .clipShape(
-            RoundedCornerShape(corners: [.bottomLeft, .bottomRight], radius: 32)
-        )
+        .disabled(viewModel.isSelectionMode)
     }
-    
+
+    private var appTitle: some View {
+        Text("FutureJoy")
+            .font(.title2.bold())
+            .foregroundStyle(.white)
+            .fixedSize()
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func calendarButton(scrollProxy: ScrollViewProxy) -> some View {
+        Button {
+            scrollProxy.scrollTo(topAnchorID, anchor: .top)
+        } label: {
+            Image(systemName: "calendar")
+                .font(.system(size: 22, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 48, height: 48)
+                .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Scroll to top")
+    }
+
+    private var selectionControls: some View {
+        HStack(spacing: 8) {
+            if viewModel.isSelectionMode {
+                Button {
+                    viewModel.confirmDeleteSelected()
+                } label: {
+                    Image(systemName: "trash")
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityLabel("Trash")
+                .disabled(viewModel.selectedEventIDs.isEmpty)
+
+                Button("Cancel") {
+                    viewModel.exitSelectionMode()
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(.white.opacity(0.18), in: Capsule())
+            } else if !viewModel.events.isEmpty {
+                Button("Select") {
+                    viewModel.enterSelectionMode()
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(.white.opacity(0.18), in: Capsule())
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.white)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
     // MARK: - Add Event Button
     private var addEventButton: some View {
         Button {

@@ -8,6 +8,30 @@ import Vision
 
 @MainActor
 final class EventListBehaviorTests: EventListTestCase {
+    func testSwitchingIsBlockedDuringSelectionAndResumesAfterCancel() async throws {
+        let container = try store(count: 2)
+        let context = ModelContext(container)
+        let past = Event(title: "Past event", emoji: "🌙", date: Calendar.current.startOfDay(for: Date()).addingTimeInterval(-86_400))
+        context.insert(past)
+        try context.save()
+        let model = EventListViewModel(modelContext: context)
+        let futureIDs = model.events.map(\.id)
+        let selected = try XCTUnwrap(model.events.first)
+        model.enterSelectionMode()
+        model.toggleSelection(for: selected)
+        model.setFilter(.past)
+        XCTAssertEqual(model.filter, .future)
+        XCTAssertEqual(model.events.map(\.id), futureIDs)
+        XCTAssertEqual(model.selectedEventIDs, [selected.id])
+        model.exitSelectionMode()
+        model.setFilter(.past)
+        XCTAssertEqual(model.events.map(\.id), [past.id])
+        XCTAssertTrue(model.selectedEventIDs.isEmpty)
+        model.setFilter(.future)
+        XCTAssertEqual(Set(model.events.map(\.id)), Set(futureIDs))
+        XCTAssertEqual(try ModelContext(container).fetchCount(FetchDescriptor<Event>()), 3)
+    }
+
     func testEventCardsTruncateLongTitlesAndKeepMetadataReadable() throws {
         let longTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
         let variants: [(String, String, String?)] = [
