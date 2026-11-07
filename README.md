@@ -18,8 +18,9 @@ The focused UI tests are:
 - `SimulatorSampleDataUITests/testArchivedEventRescheduledToTodayMovesListsAndPersists`
 
 Other UI cases and template UI launch/performance tests are outside this initial gate.
-Tests run serially on one simulator. The script checks the results to ensure that
-every selected UI test and the required functional unit inventory actually ran
+Simulator boot overlaps the build; the script waits for boot to finish before
+starting tests. Tests run serially on one simulator. The script checks the results
+to ensure that every selected UI test and the required functional unit inventory actually ran
 and passed, and benchmarks did not run. Update that inventory in
 `.github/scripts/ios-ci.sh` when intentionally renaming or removing unit tests.
 
@@ -41,7 +42,6 @@ export SIMULATOR_ID=$(xcrun simctl create "Forward CI Local" \
   com.apple.CoreSimulator.SimRuntime.iOS-26-1)
 export RUNNER_TEMP=$(mktemp -d)
 xcrun simctl boot "$SIMULATOR_ID"
-xcrun simctl bootstatus "$SIMULATOR_ID" -b
 bash .github/scripts/ios-ci.sh
 # After inspecting the results, remove only this disposable simulator.
 xcrun simctl shutdown "$SIMULATOR_ID"

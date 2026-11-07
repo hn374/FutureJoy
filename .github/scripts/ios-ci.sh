@@ -24,8 +24,10 @@ build_args=(
   -derivedDataPath "$RUNNER_TEMP/ForwardDerivedData"
 )
 
+# The caller starts simulator boot; compile while it finishes starting.
 xcodebuild build-for-testing "${build_args[@]}" \
   2>&1 | tee "$RUNNER_TEMP/forward-build.log"
+xcrun simctl bootstatus "$SIMULATOR_ID" -b
 xcodebuild test-without-building "${build_args[@]}" "${test_filters[@]}" \
   -parallel-testing-enabled NO \
   -resultBundlePath "$RUNNER_TEMP/ForwardTests.xcresult" \
