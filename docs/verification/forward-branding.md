@@ -81,7 +81,7 @@ done
 
 - [ ] Existing functional gate passes. A green existing CI gate alone covers
   neither ListSwitchingUITests nor Release.
-- [ ] Confirm all three `ListSwitchingUITests` cases actually ran and passed in
+- [ ] Confirm all five `ListSwitchingUITests` cases actually ran and passed in
   the result tree; unmatched test filters can otherwise hide missing coverage.
 - [ ] Inspect retained screenshot attachments: Future/Past at normal text size
   and Empty/Archive-heavy Future/Past at accessibility XXXL. Forward and list
