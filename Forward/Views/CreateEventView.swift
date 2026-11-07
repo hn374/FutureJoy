@@ -41,8 +41,8 @@ struct CreateEventView: View {
     }
 
     private var emojiForSaving: String {
-        let trimmed = selectedEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "🎉" : String(trimmed.prefix(2))
+        let emoji = EventEmojiInput.limit(selectedEmoji)
+        return emoji.isEmpty ? "🎉" : emoji
     }
     
     var body: some View {
@@ -244,14 +244,15 @@ struct CreateEventView: View {
                         .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
                 )
                 .accessibilityLabel("Emoji")
+                .accessibilityHint("Choose one emoji. Extra emoji are ignored.")
                 .onChange(of: selectedEmoji) { _, newValue in
-                    let limited = String(newValue.prefix(2))
+                    let limited = EventEmojiInput.limit(newValue)
                     if limited != newValue {
                         selectedEmoji = limited
                     }
                 }
 
-            Text("Defaults to 🎉 if left blank")
+            Text("Choose one emoji. Defaults to 🎉 if left blank.")
                 .font(.system(size: 14))
                 .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
             
@@ -279,6 +280,7 @@ struct CreateEventView: View {
                         }
                         .frame(height: 52)
                     }
+                    .accessibilityAddTraits(selectedEmoji == emoji ? .isSelected : [])
                 }
             }
         }

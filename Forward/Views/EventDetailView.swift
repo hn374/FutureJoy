@@ -20,6 +20,7 @@ struct EventDetailView: View {
     @State private var isEditing = false
     @State private var editedTitle: String
     @State private var editedEmoji: String
+    @State private var hasEditedEmoji = false
     @State private var editedDate: Date
     @State private var editedLocation: String
     @State private var editedNotes: String
@@ -282,7 +283,13 @@ struct EventDetailView: View {
                         .textInputAutocapitalization(.words)
                     
                     HStack(spacing: 12) {
-                        TextField("Emoji", text: $editedEmoji)
+                        TextField("Emoji", text: Binding(
+                            get: { editedEmoji },
+                            set: {
+                                hasEditedEmoji = true
+                                editedEmoji = $0
+                            }
+                        ))
                             .font(.system(size: 22))
                             .frame(width: 64)
                             .padding(.vertical, 10)
@@ -294,14 +301,19 @@ struct EventDetailView: View {
                                     .stroke(Color(red: 0.9, green: 0.9, blue: 0.93), lineWidth: 1)
                             )
                             .multilineTextAlignment(.center)
-                            .onChange(of: editedEmoji) { _, newValue in
-                                let limited = String(newValue.prefix(2))
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .accessibilityLabel("Emoji")
+                            .accessibilityHint("Choose one emoji. Extra emoji are ignored.")
+                            .onChange(of: hasEditedEmoji ? editedEmoji : nil) { _, newValue in
+                                guard let newValue else { return }
+                                let limited = EventEmojiInput.limit(newValue)
                                 if limited != newValue {
                                     editedEmoji = limited
                                 }
                             }
                         
-                        Text("Pick an emoji")
+                        Text("Choose one emoji")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(Color(red: 0.45, green: 0.45, blue: 0.5))
                     }
@@ -489,6 +501,7 @@ struct EventDetailView: View {
     }
     
     private func resetEdits() {
+        hasEditedEmoji = false
         editedDate = event.date
         editedTitle = event.title
         editedEmoji = event.emoji
@@ -503,7 +516,8 @@ struct EventDetailView: View {
         }
         
         let trimmedTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedEmoji = editedEmoji.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Preserve legacy selections when only unrelated fields were edited.
+        let emoji = hasEditedEmoji ? EventEmojiInput.limit(editedEmoji) : event.emoji
         let trimmedLocation = editedLocation.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNotes = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
         
@@ -512,13 +526,13 @@ struct EventDetailView: View {
             return
         }
         
-        guard trimmedEmoji.isEmpty == false else {
+        guard emoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
             alertMessage = "Please add an emoji."
             return
         }
         
         event.title = trimmedTitle
-        event.emoji = trimmedEmoji
+        event.emoji = emoji
         event.date = editedDate
         event.isArchived = false
         event.location = trimmedLocation.isEmpty ? nil : trimmedLocation
