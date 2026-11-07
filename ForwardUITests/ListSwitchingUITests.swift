@@ -17,10 +17,11 @@ final class ListSwitchingUITests: XCTestCase {
         launch(profile: "typical")
         let future = card("Coffee and a good book")
         XCTAssertTrue(future.waitForExistence(timeout: 10))
+        assertForwardTitleIsVisible()
         attach("Future list")
         switchTo("Past")
         XCTAssertTrue(card("Board game night").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["FutureJoy"].exists)
+        assertForwardTitleIsVisible()
         XCTAssertFalse(app.buttons["Add New Event"].exists)
         XCTAssertFalse(future.exists)
         attach("Past list")
@@ -164,8 +165,9 @@ final class ListSwitchingUITests: XCTestCase {
         for profile in ["empty", "archive-heavy"] {
             launch(profile: profile, largeText: true)
             XCTAssertTrue(app.buttons["Past"].waitForExistence(timeout: 10))
+            assertForwardTitleIsVisible()
             switchTo("Past")
-            XCTAssertTrue(app.staticTexts["FutureJoy"].exists)
+            assertForwardTitleIsVisible()
             XCTAssertFalse(app.buttons["Add New Event"].exists)
             attach("\(profile) Past at largest text size")
             if profile == "archive-heavy" {
@@ -178,8 +180,16 @@ final class ListSwitchingUITests: XCTestCase {
             }
             switchTo("Future")
             XCTAssertTrue(app.buttons["Add New Event"].isHittable)
+            assertForwardTitleIsVisible()
             attach("\(profile) Future at largest text size")
         }
+    }
+
+    private func assertForwardTitleIsVisible(file: StaticString = #filePath, line: UInt = #line) {
+        let title = app.staticTexts["Forward"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5), file: file, line: line)
+        XCTAssertTrue(title.isHittable, "The app title must remain visible", file: file, line: line)
+        XCTAssertTrue(app.frame.contains(title.frame), "The app title must fit on screen", file: file, line: line)
     }
 
     private func launch(profile: String, largeText: Bool = false) {

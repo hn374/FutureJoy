@@ -3,3 +3,7 @@
 *.xcuserdata/
 DerivedData/
 *.xcuserstate
+
+# Local agent planning artifacts
+/docs/superpowers/
+/docs/verification/

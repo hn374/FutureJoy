@@ -202,7 +202,7 @@ struct HomeView: View {
     }
 
     private var appTitle: some View {
-        Text("FutureJoy")
+        Text("Forward")
             .font(.title2.bold())
             .foregroundStyle(.white)
             .fixedSize()
