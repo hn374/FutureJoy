@@ -30,17 +30,12 @@ struct HomeView: View {
 
                         ScrollView {
                             VStack(spacing: 0) {
-                                // Keep the calendar's scroll target at a non-lazy content origin.
+                                // Keep the header's scroll target at a non-lazy content origin.
                                 Color.clear
                                     .frame(height: 0)
                                     .id(topAnchorID)
 
                                 LazyVStack(spacing: 16) {
-                                    // Add New Event Button (future events only)
-                                    if viewModel.filter == .future {
-                                        addEventButton
-                                    }
-
                                     // Event List
                                     eventList
                                 }
@@ -53,6 +48,8 @@ struct HomeView: View {
                     }
                 }
             }
+            .disabled(viewModel.showingCreateEvent)
+            .accessibilityHidden(viewModel.showingCreateEvent)
             .overlay(alignment: .center) {
                 if viewModel.showingCreateEvent {
                     ZStack {
@@ -116,22 +113,24 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        calendarButton(scrollProxy: scrollProxy)
-                        Spacer(minLength: 0)
-                        appTitle
-                        Spacer(minLength: 0)
-                        selectionControls
+                    HStack(spacing: 8) {
+                        leadingHeaderAction
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        appTitle(scrollProxy: scrollProxy)
+                        trailingHeaderAction
+                            .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    VStack(spacing: 12) {
-                        appTitle
+                    VStack(spacing: 8) {
+                        appTitle(scrollProxy: scrollProxy)
                         HStack {
-                            calendarButton(scrollProxy: scrollProxy)
+                            leadingHeaderAction
                             Spacer()
-                            selectionControls
+                            trailingHeaderAction
                         }
                     }
                 }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
 
                 if viewModel.isSelectionMode {
                     Text("\(viewModel.selectedEventIDs.count) selected")
@@ -201,58 +200,74 @@ struct HomeView: View {
         .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
     }
 
-    private var appTitle: some View {
-        Text("Forward")
-            .font(.title2.bold())
-            .foregroundStyle(.white)
-            .fixedSize()
-            .accessibilityAddTraits(.isHeader)
-    }
-
-    private func calendarButton(scrollProxy: ScrollViewProxy) -> some View {
+    private func appTitle(scrollProxy: ScrollViewProxy) -> some View {
         Button {
             scrollProxy.scrollTo(topAnchorID, anchor: .top)
         } label: {
-            Image(systemName: "calendar")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(.white)
-                .frame(width: 48, height: 48)
-                .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+            Text("Forward")
+                .font(.title2.bold())
+                .fixedSize()
+                .padding(.horizontal, 4)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Scroll to top")
+        .accessibilityLabel("Forward, scroll to top")
+        .accessibilityHint("Scrolls to the beginning of the current list")
+        .accessibilityIdentifier("Scroll to top")
+        .accessibilityAddTraits(.isHeader)
     }
 
-    private var selectionControls: some View {
-        HStack(spacing: 8) {
-            if viewModel.isSelectionMode {
-                Button {
-                    viewModel.confirmDeleteSelected()
-                } label: {
-                    Image(systemName: "trash")
-                        .frame(minWidth: 44, minHeight: 44)
-                }
-                .accessibilityLabel("Trash")
-                .disabled(viewModel.selectedEventIDs.isEmpty)
-
-                Button("Cancel") {
-                    viewModel.exitSelectionMode()
-                }
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.white.opacity(0.18), in: Capsule())
-            } else if !viewModel.events.isEmpty {
-                Button("Select") {
-                    viewModel.enterSelectionMode()
-                }
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.white.opacity(0.18), in: Capsule())
+    @ViewBuilder
+    private var leadingHeaderAction: some View {
+        if viewModel.isSelectionMode {
+            Button {
+                viewModel.exitSelectionMode()
+            } label: {
+                headerTextLabel("Cancel")
             }
+            .buttonStyle(.plain)
+        } else if !viewModel.events.isEmpty {
+            Button {
+                viewModel.enterSelectionMode()
+            } label: {
+                headerTextLabel("Select")
+            }
+            .buttonStyle(.plain)
+        } else {
+            headerTextLabel("Select")
+                .hidden()
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white)
-        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func headerTextLabel(_ title: String) -> some View {
+        Text(title)
+            .padding(.horizontal, 12)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(.black.opacity(0.25), in: Capsule())
+            .contentShape(Rectangle())
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private var trailingHeaderAction: some View {
+        if viewModel.isSelectionMode {
+            Button {
+                viewModel.confirmDeleteSelected()
+            } label: {
+                Image(systemName: "trash")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Trash")
+            .disabled(viewModel.selectedEventIDs.isEmpty)
+        } else if viewModel.filter == .future {
+            addEventButton
+        } else {
+            addEventLabel
+                .hidden()
+        }
     }
 
     // MARK: - Add Event Button
@@ -260,31 +275,21 @@ struct HomeView: View {
         Button {
             viewModel.showingCreateEvent = true
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .semibold))
-                
-                Text("Add New Event")
-                    .font(.system(size: 17, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.45, green: 0.40, blue: 0.95),
-                        Color(red: 0.55, green: 0.35, blue: 0.92)
-                    ]),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color(red: 0.45, green: 0.40, blue: 0.95).opacity(0.4), radius: 12, x: 0, y: 6)
+            addEventLabel
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add New Event")
     }
-    
+
+    private var addEventLabel: some View {
+        Label("Add", systemImage: "plus")
+            .padding(.horizontal, 12)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(.black.opacity(0.25), in: Capsule())
+            .contentShape(Rectangle())
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
     // MARK: - Event List
     private var eventList: some View {
         Group {
