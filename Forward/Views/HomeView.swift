@@ -122,10 +122,17 @@ struct HomeView: View {
                     }
                     VStack(spacing: 8) {
                         appTitle(scrollProxy: scrollProxy)
-                        HStack {
-                            leadingHeaderAction
-                            Spacer()
-                            trailingHeaderAction
+                        ViewThatFits(in: .horizontal) {
+                            HStack {
+                                leadingHeaderAction
+                                Spacer()
+                                trailingHeaderAction
+                            }
+                            VStack(alignment: .trailing, spacing: 8) {
+                                leadingHeaderAction
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                trailingHeaderAction
+                            }
                         }
                     }
                 }
@@ -251,22 +258,20 @@ struct HomeView: View {
 
     @ViewBuilder
     private var trailingHeaderAction: some View {
-        if viewModel.isSelectionMode {
-            Button {
-                viewModel.confirmDeleteSelected()
-            } label: {
-                Image(systemName: "trash")
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
+        HStack(spacing: 8) {
+            if viewModel.isSelectionMode {
+                Button {
+                    viewModel.confirmDeleteSelected()
+                } label: {
+                    Image(systemName: "trash")
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Trash")
+                .disabled(viewModel.selectedEventIDs.isEmpty)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Trash")
-            .disabled(viewModel.selectedEventIDs.isEmpty)
-        } else if viewModel.filter == .future {
             addEventButton
-        } else {
-            addEventLabel
-                .hidden()
         }
     }
 
@@ -293,8 +298,24 @@ struct HomeView: View {
     // MARK: - Event List
     private var eventList: some View {
         Group {
-            if viewModel.filter == .past && viewModel.events.isEmpty {
-                emptyPastState
+            if viewModel.events.isEmpty {
+                if viewModel.filter == .past {
+                    emptyPastState
+                } else {
+                    Button {
+                        viewModel.showingCreateEvent = true
+                    } label: {
+                        Label("Add New Event", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color(red: 0.45, green: 0.40, blue: 0.95))
+                    .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                    .accessibilityLabel("Add Event")
+                    .accessibilityIdentifier("inline-add-event")
+                }
             } else {
                 ForEach(viewModel.events) { event in
                     if viewModel.isSelectionMode {
