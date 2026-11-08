@@ -115,22 +115,17 @@ struct HomeView: View {
     private func headerView(scrollProxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        calendarButton(scrollProxy: scrollProxy)
-                        Spacer(minLength: 0)
-                        appTitle
-                        Spacer(minLength: 0)
-                        selectionControls
-                    }
-                    VStack(spacing: 12) {
-                        appTitle
-                        HStack {
-                            calendarButton(scrollProxy: scrollProxy)
-                            Spacer()
-                            selectionControls
-                        }
-                    }
+                StableHeaderLayout {
+                    appTitle
+                        .accessibilitySortPriority(2)
+                    calendarButton(scrollProxy: scrollProxy)
+                        .accessibilitySortPriority(3)
+                    selectionControls
+                        .accessibilitySortPriority(1)
+                    maximumSelectionControls
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                 }
 
                 if viewModel.isSelectionMode {
@@ -229,30 +224,51 @@ struct HomeView: View {
                 Button {
                     viewModel.confirmDeleteSelected()
                 } label: {
-                    Image(systemName: "trash")
-                        .frame(minWidth: 44, minHeight: 44)
+                    trashLabel
                 }
                 .accessibilityLabel("Trash")
                 .disabled(viewModel.selectedEventIDs.isEmpty)
 
-                Button("Cancel") {
+                Button {
                     viewModel.exitSelectionMode()
+                } label: {
+                    selectionTextLabel("Cancel")
                 }
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.white.opacity(0.18), in: Capsule())
             } else if !viewModel.events.isEmpty {
-                Button("Select") {
+                Button {
                     viewModel.enterSelectionMode()
+                } label: {
+                    selectionTextLabel("Select")
                 }
-                .padding(.horizontal, 12)
-                .frame(minHeight: 44)
-                .background(.white.opacity(0.18), in: Capsule())
             }
         }
         .font(.subheadline.weight(.semibold))
         .foregroundStyle(.white)
         .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var maximumSelectionControls: some View {
+        ZStack {
+            selectionTextLabel("Select")
+            HStack(spacing: 8) {
+                trashLabel
+                selectionTextLabel("Cancel")
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .fixedSize()
+    }
+
+    private var trashLabel: some View {
+        Image(systemName: "trash")
+            .frame(minWidth: 44, minHeight: 44)
+    }
+
+    private func selectionTextLabel(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .padding(.horizontal, 12)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(.white.opacity(0.18), in: Capsule())
     }
 
     // MARK: - Add Event Button

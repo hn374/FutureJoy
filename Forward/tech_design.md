@@ -74,6 +74,7 @@ EventListViewModel.swift (@MainActor, ObservableObject)
 5. Views
 - HomeView.swift
   - Gradient header (purple/blue), app title, subtitle
+  - StableHeaderLayout centers the title independently of active actions, reserving maximum selection-control dimensions across states. Narrow widths and larger text use a stable title-first arrangement; measurement labels are hidden from touch and accessibility.
   - “Add New Event” button (gradient) opens CreateEventView sheet
   - LazyVStack of EventRowView for non-archived events
   - Delete confirmation alert
