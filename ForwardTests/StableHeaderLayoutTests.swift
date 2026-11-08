@@ -56,13 +56,31 @@ final class StableHeaderLayoutTests: EventListTestCase {
         }
     }
 
+    func testChangingLeadingActionKeepsFallbackChoiceStable() async throws {
+        for width: CGFloat in [283, 284] {
+            for leadingWidth: CGFloat in [48, 132] {
+                let frames = try await render(width: width, actionWidth: 80,
+                                              leadingWidth: leadingWidth, leadingReservation: 132)
+                let header = try XCTUnwrap(frames["header"])
+                let title = try XCTUnwrap(frames["title"])
+                let leading = try XCTUnwrap(frames["leading"])
+                let trailing = try XCTUnwrap(frames["trailing"])
+                XCTAssertEqual(header.height, width < 284 ? 150 : 90, accuracy: 0.5)
+                XCTAssertEqual(title.midX, width / 2, accuracy: 0.5)
+                XCTAssertFalse(leading.intersects(trailing))
+            }
+        }
+    }
+
     private func render(width: CGFloat, actionWidth: CGFloat,
+                        leadingWidth: CGFloat = 48, leadingReservation: CGFloat = 48,
                         direction: LayoutDirection = .leftToRight) async throws -> [String: CGRect] {
         let capture = FrameCapture()
         let content = StableHeaderLayout {
             Color.red.frame(width: 100, height: 30).captureFrame("title")
-            Color.blue.frame(width: 48, height: 48).captureFrame("leading")
+            Color.blue.frame(width: leadingWidth, height: 48).captureFrame("leading")
             Color.green.frame(width: actionWidth, height: actionWidth == 0 ? 0 : 44).captureFrame("trailing")
+            Color.clear.frame(width: leadingReservation, height: 48).hidden()
             Color.clear.frame(width: 140, height: 48).hidden()
         }
         .captureFrame("header")

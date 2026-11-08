@@ -10,6 +10,7 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: EventListViewModel
     private let topAnchorID = "topAnchor"
     
@@ -30,17 +31,12 @@ struct HomeView: View {
 
                         ScrollView {
                             VStack(spacing: 0) {
-                                // Keep the calendar's scroll target at a non-lazy content origin.
+                                // Keep the header's scroll target at a non-lazy content origin.
                                 Color.clear
                                     .frame(height: 0)
                                     .id(topAnchorID)
 
                                 LazyVStack(spacing: 16) {
-                                    // Add New Event Button (future events only)
-                                    if viewModel.filter == .future {
-                                        addEventButton
-                                    }
-
                                     // Event List
                                     eventList
                                 }
@@ -53,6 +49,8 @@ struct HomeView: View {
                     }
                 }
             }
+            .disabled(viewModel.showingCreateEvent)
+            .accessibilityHidden(viewModel.showingCreateEvent)
             .overlay(alignment: .center) {
                 if viewModel.showingCreateEvent {
                     ZStack {
@@ -115,18 +113,23 @@ struct HomeView: View {
     private func headerView(scrollProxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                StableHeaderLayout {
-                    appTitle
+                StableHeaderLayout(spacing: 8) {
+                    appTitle(scrollProxy: scrollProxy)
                         .accessibilitySortPriority(2)
-                    calendarButton(scrollProxy: scrollProxy)
+                    leadingHeaderAction
                         .accessibilitySortPriority(3)
-                    selectionControls
-                        .accessibilitySortPriority(1)
-                    maximumSelectionControls
+                    trailingHeaderAction
+                    maximumLeadingAction
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
+                    maximumTrailingActions
                         .hidden()
                         .accessibilityHidden(true)
                         .allowsHitTesting(false)
                 }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
 
                 if viewModel.isSelectionMode {
                     Text("\(viewModel.selectedEventIDs.count) selected")
@@ -196,29 +199,59 @@ struct HomeView: View {
         .accessibilityHint(viewModel.isSelectionMode ? "Tap Cancel to switch lists" : "")
     }
 
-    private var appTitle: some View {
-        Text("Forward")
-            .font(.title2.bold())
-            .foregroundStyle(.white)
-            .fixedSize()
-            .accessibilityAddTraits(.isHeader)
-    }
-
-    private func calendarButton(scrollProxy: ScrollViewProxy) -> some View {
+    private func appTitle(scrollProxy: ScrollViewProxy) -> some View {
         Button {
-            scrollProxy.scrollTo(topAnchorID, anchor: .top)
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                scrollProxy.scrollTo(topAnchorID, anchor: .top)
+            }
         } label: {
-            Image(systemName: "calendar")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(.white)
-                .frame(width: 48, height: 48)
-                .background(.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 12))
+            Text("Forward")
+                .font(.title2.bold())
+                .fixedSize()
+                .padding(.horizontal, 4)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Scroll to top")
+        .accessibilityLabel("Forward, scroll to top")
+        .accessibilityHint("Scrolls to the beginning of the current list")
+        .accessibilityIdentifier("Scroll to top")
+        .accessibilityAddTraits(.isHeader)
     }
 
-    private var selectionControls: some View {
+    @ViewBuilder
+    private var leadingHeaderAction: some View {
+        if viewModel.isSelectionMode {
+            Button {
+                viewModel.exitSelectionMode()
+            } label: {
+                headerTextLabel("Cancel")
+            }
+            .buttonStyle(.plain)
+        } else if !viewModel.events.isEmpty {
+            Button {
+                viewModel.enterSelectionMode()
+            } label: {
+                headerTextLabel("Select")
+            }
+            .buttonStyle(.plain)
+        } else {
+            headerTextLabel("Select")
+                .hidden()
+        }
+    }
+
+    private func headerTextLabel(_ title: String) -> some View {
+        Text(title)
+            .padding(.horizontal, 12)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(.black.opacity(0.25), in: Capsule())
+            .contentShape(Rectangle())
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    @ViewBuilder
+    private var trailingHeaderAction: some View {
         HStack(spacing: 8) {
             if viewModel.isSelectionMode {
                 Button {
@@ -226,49 +259,33 @@ struct HomeView: View {
                 } label: {
                     trashLabel
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel("Trash")
                 .disabled(viewModel.selectedEventIDs.isEmpty)
-
-                Button {
-                    viewModel.exitSelectionMode()
-                } label: {
-                    selectionTextLabel("Cancel")
-                }
-            } else if !viewModel.events.isEmpty {
-                Button {
-                    viewModel.enterSelectionMode()
-                } label: {
-                    selectionTextLabel("Select")
-                }
             }
+            addEventButton
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white)
-        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private var maximumSelectionControls: some View {
+    private var maximumLeadingAction: some View {
         ZStack {
-            selectionTextLabel("Select")
-            HStack(spacing: 8) {
-                trashLabel
-                selectionTextLabel("Cancel")
-            }
+            headerTextLabel("Select")
+            headerTextLabel("Cancel")
         }
-        .font(.subheadline.weight(.semibold))
+    }
+
+    private var maximumTrailingActions: some View {
+        HStack(spacing: 8) {
+            trashLabel
+            addEventLabel
+        }
         .fixedSize()
     }
 
     private var trashLabel: some View {
         Image(systemName: "trash")
             .frame(minWidth: 44, minHeight: 44)
-    }
-
-    private func selectionTextLabel(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .padding(.horizontal, 12)
-            .frame(minWidth: 44, minHeight: 44)
-            .background(.white.opacity(0.18), in: Capsule())
+            .contentShape(Rectangle())
     }
 
     // MARK: - Add Event Button
@@ -276,36 +293,42 @@ struct HomeView: View {
         Button {
             viewModel.showingCreateEvent = true
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .semibold))
-                
-                Text("Add New Event")
-                    .font(.system(size: 17, weight: .semibold))
-            }
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.45, green: 0.40, blue: 0.95),
-                        Color(red: 0.55, green: 0.35, blue: 0.92)
-                    ]),
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color(red: 0.45, green: 0.40, blue: 0.95).opacity(0.4), radius: 12, x: 0, y: 6)
+            addEventLabel
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add New Event")
     }
-    
+
+    private var addEventLabel: some View {
+        Label("Add", systemImage: "plus")
+            .padding(.horizontal, 12)
+            .frame(minWidth: 44, minHeight: 44)
+            .background(.black.opacity(0.25), in: Capsule())
+            .contentShape(Rectangle())
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
     // MARK: - Event List
     private var eventList: some View {
         Group {
-            if viewModel.filter == .past && viewModel.events.isEmpty {
-                emptyPastState
+            if viewModel.events.isEmpty {
+                if viewModel.filter == .past {
+                    emptyPastState
+                } else {
+                    Button {
+                        viewModel.showingCreateEvent = true
+                    } label: {
+                        Label("Add New Event", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color(red: 0.45, green: 0.40, blue: 0.95))
+                    .background(.white, in: RoundedRectangle(cornerRadius: 18))
+                    .accessibilityLabel("Add Event")
+                    .accessibilityIdentifier("inline-add-event")
+                }
             } else {
                 ForEach(viewModel.events) { event in
                     if viewModel.isSelectionMode {

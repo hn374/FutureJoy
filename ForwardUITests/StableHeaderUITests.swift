@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class StableHeaderUITests: XCTestCase {
     private let app = XCUIApplication()
-    private var title: XCUIElement { app.staticTexts["Forward"] }
+    private var title: XCUIElement { app.buttons["Scroll to top"] }
 
     override func setUpWithError() throws { continueAfterFailure = false }
     override func tearDownWithError() throws { app.terminate() }
@@ -99,6 +99,25 @@ final class StableHeaderUITests: XCTestCase {
         }
     }
 
+    func testSelectionAddAndTrashHaveSeparateFramesAndTouchTargets() {
+        for largeText in [false, true] {
+            launch(profile: "typical", largeText: largeText)
+            app.buttons["Select"].tap()
+            XCTAssertTrue(app.staticTexts["0 selected"].waitForExistence(timeout: 5))
+            let add = app.buttons["Add New Event"]
+            let trash = app.buttons["Trash"]
+            XCTAssertFalse(add.frame.intersects(trash.frame), "Add must not expose the Trash button's frame")
+            for point in [CGVector(dx: 0.5, dy: 0.5), CGVector(dx: 0.1, dy: 0.1)] {
+                add.coordinate(withNormalizedOffset: point).tap()
+                let field = app.textFields["Birthday Party"]
+                XCTAssertTrue(field.waitForExistence(timeout: 5))
+                app.buttons["Close"].tap()
+                XCTAssertTrue(field.waitForNonExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["0 selected"].exists)
+            }
+        }
+    }
+
     private func launch(profile: String, largeText: Bool) {
         app.terminate()
         XCUIDevice.shared.orientation = .portrait
@@ -133,15 +152,15 @@ final class StableHeaderUITests: XCTestCase {
         XCTAssertEqual(actual.height, baseline.height, accuracy: 1, file: file, line: line)
         XCTAssertEqual(actual.midX, app.frame.midX, accuracy: 1, file: file, line: line)
         XCTAssertTrue(app.frame.contains(actual), file: file, line: line)
-        XCTAssertEqual(app.staticTexts.matching(identifier: "Forward").count, 1, file: file, line: line)
-        assertControl(app.buttons["Scroll to top"])
+        XCTAssertEqual(app.buttons.matching(identifier: "Scroll to top").count, 1, file: file, line: line)
     }
 
     private func assertControl(_ control: XCUIElement, enabled: Bool = true) {
         XCTAssertTrue(control.exists)
         XCTAssertTrue(app.frame.contains(control.frame))
-        XCTAssertGreaterThanOrEqual(control.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(control.frame.height, 44)
+        // AX frames can report 44 as 43.99999999999997 after coordinate conversion.
+        XCTAssertGreaterThanOrEqual(control.frame.width, 44 - 0.001)
+        XCTAssertGreaterThanOrEqual(control.frame.height, 44 - 0.001)
         XCTAssertFalse(control.frame.intersects(title.frame))
         if enabled { XCTAssertTrue(control.isHittable) }
     }

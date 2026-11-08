@@ -32,8 +32,17 @@ flowchart LR
     Past --> Detail
 ```
 
-Start in **Future**, tap **Add New Event**, and save an event to see its countdown
-card. Tap a card to open its details and use the edit control to make changes.
+Start in **Future**, tap **+ Add** in the header, and save an event to see its countdown
+card. Add stays available while scrolling in both Future and Past, including
+selection mode. An inline **Add New Event** button also appears when Future has
+no events, even if Past contains events; it disappears after the first creation
+and returns after the last Future event is removed. Past retains its distinct
+empty-state message. Both Add controls open the same creation form.
+Tap **Forward** to return the current list to the top. Use **Select** on the left
+for bulk deletion; selection mode shows **Cancel**, **Trash**, and **Add**.
+Opening, cancelling, or saving creation preserves the active tab and selections.
+Events created from Past appear in Future when you switch back to it.
+Tap a card to open its details and use the edit control to make changes.
 Switch to **Past** to review archived events. Events before today are archived
 when the list refreshes on startup or when returning to the home screen; today's
 events stay in Future. Use the [Typical sample profile](#simulator-sample-data)
@@ -194,6 +203,20 @@ The focused UI tests are:
 - `SimulatorSampleDataUITests/testArchivedEventRescheduledToFutureMovesListsAndPersists`
 - `SimulatorSampleDataUITests/testArchivedEventRescheduledToTodayMovesListsAndPersists`
 
+Additional local regression coverage includes `PersistentHeaderUITests` for persistent
+creation, draft cancellation, selection, empty/Past states, and accessible touch
+areas, plus `ListSwitchingUITests` for scroll reset and title scrolling.
+Tap the Forward title to scroll the active list to its beginning with a brief
+ease-in-out transition; Reduce Motion makes that reset immediate. The title
+retains its accessible “Forward, scroll to top” label. Title regression tests
+check both long lists return to their original top, repeated activation, and
+empty/short list stability. For motion verification, use the Busy sample profile
+in both tabs: tap the title from the middle and bottom, interrupt with a drag,
+and tap again during the transition. Repeat with Settings → Accessibility →
+Motion → Reduce Motion enabled. On a physical device, also use VoiceOver to
+activate the title (VoiceOver is unavailable in Simulator).
+Confirm the first event is fully visible, selection survives, and switching
+tabs still resets to the destination's top.
 Other UI cases and template UI launch/performance tests are outside this initial gate.
 Simulator boot overlaps the build; the script waits for boot to finish before
 starting tests. Tests run serially on one simulator. The script checks the results

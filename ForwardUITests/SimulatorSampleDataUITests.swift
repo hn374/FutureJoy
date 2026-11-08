@@ -140,9 +140,9 @@ final class SimulatorSampleDataUITests: XCTestCase {
     }
 
     func testSelectionSurvivesScrollingAndDeletesOnlySelectedEvent() {
-        launch(reset: true, profile: "edge-cases")
-        let selectedTitle = "Coffee and a good book"
-        let lastTitle = "A wonderfully long weekend adventure with friends, food, music, and a few unexpected detours"
+        launch(reset: true, profile: "busy")
+        let selectedTitle = "Busy event 101"
+        let lastTitle = "Busy event 110"
         XCTAssertTrue(card(selectedTitle).waitForExistence(timeout: 10))
         app.buttons["Select"].tap()
         let selected = app.staticTexts[selectedTitle]
@@ -150,7 +150,7 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 5))
 
         let last = app.staticTexts[lastTitle]
-        // Six upcoming cards ensure this exercises scrolling even with compact titles.
+        // Distinct dates keep the selected event first and the tenth event beyond the viewport.
         scroll(until: last, direction: .up, fullyVisible: true)
         XCTAssertTrue(last.isHittable)
         XCTAssertFalse(selected.isHittable, "The selected card must leave the visible viewport")
@@ -162,11 +162,11 @@ final class SimulatorSampleDataUITests: XCTestCase {
         XCTAssertTrue(app.alerts.staticTexts["Delete 1 selected event(s)? This action cannot be undone."].waitForExistence(timeout: 5))
         app.alerts.buttons["Delete"].tap()
         XCTAssertFalse(card(selectedTitle).exists)
-        XCTAssertTrue(card("Stargazing picnic").waitForExistence(timeout: 5))
+        XCTAssertTrue(card("Busy event 102").waitForExistence(timeout: 5))
 
-        launch(reset: false, profile: "edge-cases")
-        XCTAssertTrue(card("Stargazing picnic").waitForExistence(timeout: 10))
-        XCTAssertTrue(card("Weekend baking workshop").exists)
+        launch(reset: false, profile: "busy")
+        XCTAssertTrue(card("Busy event 102").waitForExistence(timeout: 10))
+        XCTAssertTrue(card("Busy event 103").exists)
         XCTAssertFalse(card(selectedTitle).exists)
         scroll(until: card(lastTitle), direction: .up)
         XCTAssertTrue(card(lastTitle).isHittable)

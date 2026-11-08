@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Title, leading action, trailing actions, and a noninteractive maximum-action measurement.
+/// Title, active leading/trailing actions, then noninteractive leading/trailing reservations.
 struct StableHeaderLayout: Layout {
     var spacing: CGFloat = 12
 
@@ -29,12 +29,13 @@ struct StableHeaderLayout: Layout {
                           proposal: ProposedViewSize(metrics.trailing))
         // The hidden measurement view participates in sizing only.
         subviews[3].place(at: bounds.origin, proposal: .zero)
+        subviews[4].place(at: bounds.origin, proposal: .zero)
     }
 
     private func metrics(for subviews: Subviews) -> Metrics {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return Metrics(title: sizes[0], leading: sizes[1], trailing: sizes[2],
-                       reservation: sizes[3], spacing: spacing)
+                       leadingReservation: sizes[3], trailingReservation: sizes[4], spacing: spacing)
     }
 
     private struct Metrics {
@@ -45,14 +46,18 @@ struct StableHeaderLayout: Layout {
         let inlineWidth: CGFloat
         let actionWidth: CGFloat
 
-        init(title: CGSize, leading: CGSize, trailing: CGSize, reservation: CGSize, spacing: CGFloat) {
+        init(title: CGSize, leading: CGSize, trailing: CGSize,
+             leadingReservation: CGSize, trailingReservation: CGSize, spacing: CGFloat) {
             self.title = title
             self.leading = leading
             self.trailing = trailing
-            side = CGSize(width: max(leading.width, trailing.width, reservation.width),
-                          height: max(leading.height, trailing.height, reservation.height))
+            let leadingWidth = max(leading.width, leadingReservation.width)
+            let trailingWidth = max(trailing.width, trailingReservation.width)
+            side = CGSize(width: max(leadingWidth, trailingWidth),
+                          height: max(leading.height, trailing.height,
+                                      leadingReservation.height, trailingReservation.height))
             inlineWidth = title.width + 2 * side.width + 2 * spacing
-            actionWidth = leading.width + spacing + max(trailing.width, reservation.width)
+            actionWidth = leadingWidth + spacing + trailingWidth
         }
 
         func height(at width: CGFloat, spacing: CGFloat) -> CGFloat {
