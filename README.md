@@ -206,6 +206,17 @@ The focused UI tests are:
 Additional local regression coverage includes `PersistentHeaderUITests` for persistent
 creation, draft cancellation, selection, empty/Past states, and accessible touch
 areas, plus `ListSwitchingUITests` for scroll reset and title scrolling.
+Tap the Forward title to scroll the active list to its beginning with a brief
+ease-in-out transition; Reduce Motion makes that reset immediate. The title
+retains its accessible “Forward, scroll to top” label. Title regression tests
+check both long lists return to their original top, repeated activation, and
+empty/short list stability. For motion verification, use the Busy sample profile
+in both tabs: tap the title from the middle and bottom, interrupt with a drag,
+and tap again during the transition. Repeat with Settings → Accessibility →
+Motion → Reduce Motion enabled. On a physical device, also use VoiceOver to
+activate the title (VoiceOver is unavailable in Simulator).
+Confirm the first event is fully visible, selection survives, and switching
+tabs still resets to the destination's top.
 Other UI cases and template UI launch/performance tests are outside this initial gate.
 Simulator boot overlaps the build; the script waits for boot to finish before
 starting tests. Tests run serially on one simulator. The script checks the results

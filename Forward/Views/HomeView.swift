@@ -10,6 +10,7 @@ import SwiftData
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var viewModel: EventListViewModel
     private let topAnchorID = "topAnchor"
     
@@ -209,7 +210,9 @@ struct HomeView: View {
 
     private func appTitle(scrollProxy: ScrollViewProxy) -> some View {
         Button {
-            scrollProxy.scrollTo(topAnchorID, anchor: .top)
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                scrollProxy.scrollTo(topAnchorID, anchor: .top)
+            }
         } label: {
             Text("Forward")
                 .font(.title2.bold())
