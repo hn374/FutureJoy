@@ -11,6 +11,49 @@ final class PersistentHeaderUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
     override func tearDownWithError() throws { app.terminate() }
 
+    func testTitleReturnsBothLongListsToTheirOriginalTop() {
+        launch(profile: "busy")
+        for (tab, firstTitle) in [("Future", "Busy event 101"), ("Past", "Busy event 100")] {
+            app.buttons[tab].tap()
+            let first = card(firstTitle)
+            XCTAssertTrue(first.waitForExistence(timeout: 10))
+            let originalTop = first.frame.minY - list.frame.minY
+            for _ in 0..<5 { list.swipeUp() }
+            XCTAssertFalse(first.isHittable)
+            titleButton.doubleTap()
+            let atTop = NSPredicate { _, _ in
+                first.exists && self.list.frame.contains(first.frame)
+                    && abs(first.frame.minY - self.list.frame.minY - originalTop) <= 2
+            }
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: atTop, object: nil)], timeout: 5), .completed)
+            titleButton.tap()
+            XCTAssertEqual(first.frame.minY - list.frame.minY, originalTop, accuracy: 2)
+            attach("\(tab) title returned to true top")
+            first.tap()
+            XCTAssertTrue(app.buttons["Edit event"].waitForExistence(timeout: 5))
+            app.buttons["Back"].tap()
+        }
+    }
+
+    func testTitleKeepsEmptyAndShortListsStable() {
+        for profile in ["empty", "archive-heavy"] {
+            launch(profile: profile)
+            let content = profile == "empty" ? app.buttons["inline-add-event"] : card("Next adventure")
+            XCTAssertTrue(content.waitForExistence(timeout: 10))
+            let originalFrame = content.frame
+            titleButton.doubleTap()
+            XCTAssertEqual(content.frame, originalFrame)
+            if profile == "empty" {
+                app.buttons["Past"].tap()
+                let empty = app.staticTexts["No past events yet"]
+                XCTAssertTrue(empty.waitForExistence(timeout: 5))
+                let emptyFrame = empty.frame
+                titleButton.doubleTap()
+                XCTAssertEqual(empty.frame, emptyFrame)
+            }
+        }
+    }
+
     func testAddRemainsReachableAtTopMiddleAndBottomAndCancelPreservesPosition() {
         launch(profile: "busy")
         XCTAssertTrue(card("Busy event 101").waitForExistence(timeout: 10))
@@ -28,7 +71,9 @@ final class PersistentHeaderUITests: XCTestCase {
         XCTAssertTrue(card("Busy event 300").isHittable)
         assertCanCancelDraft(at: card("Busy event 300"))
         tapEdge(titleButton)
-        XCTAssertTrue(card("Busy event 101").isHittable)
+        let returnedToTop = NSPredicate { _, _ in self.card("Busy event 101").isHittable }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: returnedToTop, object: nil)], timeout: 5),
+                       .completed, "The title must return from the bottom of the Future list")
         relaunch(profile: "busy")
         XCTAssertTrue(card("Busy event 101").waitForExistence(timeout: 10))
         XCTAssertFalse(card("Cancelled header draft").exists)
@@ -127,7 +172,9 @@ final class PersistentHeaderUITests: XCTestCase {
         for _ in 0..<3 { list.swipeUp() }
         XCTAssertFalse(firstPast.isHittable)
         tapEdge(titleButton)
-        XCTAssertTrue(firstPast.isHittable, "The title must scroll the active Past list")
+        let returnedToTop = NSPredicate { _, _ in firstPast.isHittable }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: returnedToTop, object: nil)], timeout: 5),
+                       .completed, "The title must scroll the active Past list")
         tapEdge(app.buttons["Select"])
         XCTAssertTrue(app.buttons["Cancel"].isHittable)
         attach("Accessibility Past selection header")
