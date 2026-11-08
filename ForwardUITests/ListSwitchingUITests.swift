@@ -48,21 +48,20 @@ final class ListSwitchingUITests: XCTestCase {
 
     func testSwitchingFromScrolledListStartsDestinationAtTop() {
         launch(profile: "busy")
-        let add = list.buttons["Add New Event"]
         let firstFuture = card("Busy event 101")
         let firstPast = card("Busy event 100")
-        assertFullyVisible(add)
-        let futureTop = relativeTop(of: add)
+        assertFullyVisible(firstFuture)
+        let futureTop = relativeTop(of: firstFuture)
         switchTo("Past")
         assertFullyVisible(firstPast)
         let pastTop = relativeTop(of: firstPast)
         switchTo("Future")
-        assertAtTop(add, relativeTo: futureTop)
+        assertAtTop(firstFuture, relativeTo: futureTop)
 
         for round in 1...3 {
-            scrollOffscreen([add, firstFuture])
+            scrollOffscreen([firstFuture])
             switchTo("Future")
-            assertOffscreen([add, firstFuture], "Selecting active Future must preserve scrolling")
+            assertOffscreen([firstFuture], "Selecting active Future must preserve scrolling")
             switchTo("Past")
             assertAtTop(firstPast, relativeTo: pastTop)
             attach("Round \(round) Past reset to top")
@@ -71,7 +70,7 @@ final class ListSwitchingUITests: XCTestCase {
             switchTo("Past")
             assertOffscreen([firstPast], "Selecting active Past must preserve scrolling")
             switchTo("Future")
-            assertAtTop(add, relativeTo: futureTop)
+            assertAtTop(firstFuture, relativeTo: futureTop)
             assertFullyVisible(firstFuture)
             let visibleEvents = list.buttons.matching(NSPredicate(
                 format: "label CONTAINS 'Busy event' AND NOT label BEGINSWITH 'Delete '"
@@ -83,18 +82,18 @@ final class ListSwitchingUITests: XCTestCase {
             attach("Round \(round) Future reset to top")
         }
 
-        scrollOffscreen([add, firstFuture])
+        scrollOffscreen([firstFuture])
         app.buttons["Scroll to top"].tap()
-        assertAtTop(add, relativeTo: futureTop)
+        assertAtTop(firstFuture, relativeTo: futureTop)
         assertFullyVisible(firstFuture)
-        scrollOffscreen([add, firstFuture])
+        scrollOffscreen([firstFuture])
     }
 
     func testScrolledPastSwitchesToShortFutureAtTop() {
         launch(profile: "archive-heavy", largeText: true)
-        let add = list.buttons["Add New Event"]
-        assertFullyVisible(add)
-        let futureTop = relativeTop(of: add)
+        let firstFuture = card("Next adventure")
+        assertFullyVisible(firstFuture)
+        let futureTop = relativeTop(of: firstFuture)
         switchTo("Past")
         // An exact delete label distinguishes memory 1 from memories 10–19.
         let firstPast = list.buttons["Delete Archived memory 1"]
@@ -104,7 +103,7 @@ final class ListSwitchingUITests: XCTestCase {
         for round in 1...2 {
             scrollOffscreen([firstPast])
             switchTo("Future")
-            assertAtTop(add, relativeTo: futureTop)
+            assertAtTop(firstFuture, relativeTo: futureTop)
             assertFullyVisible(card("Next adventure"))
             attach("Round \(round) short Future reset")
             switchTo("Past")
@@ -115,10 +114,9 @@ final class ListSwitchingUITests: XCTestCase {
     func testScrolledFutureSwitchesToEmptyPastAtTop() {
         XCUIDevice.shared.orientation = .portrait
         launch(profile: "typical", largeText: true)
-        let add = list.buttons["Add New Event"]
         let firstFuture = card("Coffee and a good book")
-        assertFullyVisible(add)
-        let futureTop = relativeTop(of: add)
+        assertFullyVisible(firstFuture)
+        let futureTop = relativeTop(of: firstFuture)
         switchTo("Past")
         for title in ["Board game night", "Lakeside sketching afternoon"] {
             let delete = list.buttons["Delete \(title)"]
@@ -133,14 +131,14 @@ final class ListSwitchingUITests: XCTestCase {
         assertFullyVisible(empty)
         let emptyTop = relativeTop(of: empty)
         switchTo("Future")
-        assertAtTop(add, relativeTo: futureTop)
+        assertAtTop(firstFuture, relativeTo: futureTop)
 
         // A tall display may fit the fixtures; add real events only when displacement needs more content.
         for index in 1...8 {
-            if scrollUpUntilOffscreen([add, firstFuture]) { break }
+            if scrollUpUntilOffscreen([firstFuture]) { break }
             app.buttons["Scroll to top"].tap()
-            assertAtTop(add, relativeTo: futureTop)
-            add.tap()
+            assertAtTop(firstFuture, relativeTo: futureTop)
+            app.buttons["Add New Event"].tap()
             let name = app.textFields["Birthday Party"]
             XCTAssertTrue(name.waitForExistence(timeout: 5))
             name.tap()
@@ -151,12 +149,12 @@ final class ListSwitchingUITests: XCTestCase {
         }
 
         for round in 1...2 {
-            scrollOffscreen([add, firstFuture])
+            scrollOffscreen([firstFuture])
             switchTo("Past")
             assertAtTop(empty, relativeTo: emptyTop)
             attach("Round \(round) empty Past reset")
             switchTo("Future")
-            assertAtTop(add, relativeTo: futureTop)
+            assertAtTop(firstFuture, relativeTo: futureTop)
             assertFullyVisible(firstFuture)
         }
     }
@@ -186,7 +184,7 @@ final class ListSwitchingUITests: XCTestCase {
     }
 
     private func assertForwardTitleIsVisible(file: StaticString = #filePath, line: UInt = #line) {
-        let title = app.staticTexts["Forward"]
+        let title = app.buttons["Scroll to top"]
         XCTAssertTrue(title.waitForExistence(timeout: 5), file: file, line: line)
         XCTAssertTrue(title.isHittable, "The app title must remain visible", file: file, line: line)
         XCTAssertTrue(app.frame.contains(title.frame), "The app title must fit on screen", file: file, line: line)
