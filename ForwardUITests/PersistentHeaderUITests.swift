@@ -57,7 +57,7 @@ final class PersistentHeaderUITests: XCTestCase {
         launch(profile: "typical")
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
         tapEdge(app.buttons["Select"])
-        XCTAssertFalse(addEvent.exists)
+        XCTAssertTrue(addEvent.isHittable)
         XCTAssertTrue(app.staticTexts["0 selected"].exists)
         app.staticTexts["Coffee and a good book"].tap()
         app.buttons["Trash"].tap()
@@ -76,7 +76,7 @@ final class PersistentHeaderUITests: XCTestCase {
         XCTAssertTrue(card("Coffee and a good book").waitForExistence(timeout: 10))
     }
 
-    func testCreationAvailableOnlyInFutureIncludingEmptyLists() {
+    func testCreationAvailableInBothTabsIncludingEmptyLists() {
         for profile in ["empty", "archive-heavy"] {
             launch(profile: profile)
             XCTAssertTrue(addEvent.waitForExistence(timeout: 10))
@@ -90,7 +90,7 @@ final class PersistentHeaderUITests: XCTestCase {
                 XCTAssertFalse(app.buttons["Select"].exists)
             }
             app.buttons["Past"].tap()
-            XCTAssertFalse(addEvent.exists)
+            XCTAssertTrue(addEvent.isHittable)
             XCTAssertTrue(titleButton.isHittable)
             if profile == "empty" { XCTAssertFalse(app.buttons["Select"].exists) }
             attach("\(profile) Past header")
@@ -109,11 +109,19 @@ final class PersistentHeaderUITests: XCTestCase {
         closeCreation()
         tapEdge(app.buttons["Select"])
         XCTAssertTrue(app.staticTexts["0 selected"].exists)
-        XCTAssertFalse(addEvent.exists)
+        XCTAssertTrue(addEvent.isHittable)
+        for button in [app.buttons["Cancel"], app.buttons["Trash"], addEvent, titleButton] {
+            XCTAssertTrue(app.frame.contains(button.frame), "Header controls must stay inside the screen")
+            XCTAssertGreaterThanOrEqual(button.frame.width, 44)
+            XCTAssertGreaterThanOrEqual(button.frame.height, 44)
+        }
+        tapEdge(addEvent)
+        closeCreation()
+        XCTAssertTrue(app.staticTexts["0 selected"].exists)
         attach("Accessibility selection header")
         tapEdge(app.buttons["Cancel"])
         app.buttons["Past"].tap()
-        XCTAssertFalse(addEvent.exists)
+        XCTAssertTrue(addEvent.isHittable)
         let firstPast = app.staticTexts["Archived memory 1"]
         XCTAssertTrue(firstPast.isHittable)
         for _ in 0..<3 { list.swipeUp() }
@@ -125,6 +133,59 @@ final class PersistentHeaderUITests: XCTestCase {
         attach("Accessibility Past selection header")
         tapEdge(app.buttons["Cancel"])
         XCTAssertTrue(app.buttons["Select"].exists)
+    }
+
+    func testInlineAddTracksFirstCreationAndLastFutureDeletion() {
+        launch(profile: "empty")
+        let inline = app.buttons["inline-add-event"]
+        XCTAssertTrue(inline.waitForExistence(timeout: 10))
+        XCTAssertTrue(addEvent.isHittable)
+        attach("Empty Future with both Add controls")
+        tapEdge(inline)
+        let name = app.textFields["Birthday Party"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("First future event")
+        dismissKeyboard()
+        app.buttons["Create Event"].tap()
+        XCTAssertTrue(card("First future event").waitForExistence(timeout: 5))
+        XCTAssertFalse(inline.exists)
+        XCTAssertTrue(addEvent.isHittable)
+        attach("Populated Future with persistent Add")
+        app.buttons["Delete First future event"].tap()
+        app.alerts.buttons["Delete"].tap()
+        XCTAssertTrue(inline.waitForExistence(timeout: 5))
+    }
+
+    func testFutureEmptyWithPastEventsAndSelectionCreationPreserveContext() {
+        launch(profile: "archive-heavy")
+        XCTAssertTrue(card("Next adventure").waitForExistence(timeout: 10))
+        app.buttons["Delete Next adventure"].tap()
+        app.alerts.buttons["Delete"].tap()
+        XCTAssertTrue(app.buttons["inline-add-event"].waitForExistence(timeout: 5))
+        app.buttons["Past"].tap()
+        XCTAssertFalse(app.buttons["inline-add-event"].exists)
+        tapEdge(app.buttons["Select"])
+        app.staticTexts["Archived memory 1"].tap()
+        XCTAssertTrue(app.staticTexts["1 selected"].exists)
+        attach("Past selection with persistent Add")
+        tapEdge(addEvent)
+        fillDraftAndClose()
+        XCTAssertTrue(app.staticTexts["1 selected"].exists)
+        XCTAssertTrue(app.buttons["Trash"].isEnabled)
+        tapEdge(addEvent)
+        let name = app.textFields["Birthday Party"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Created from Past")
+        dismissKeyboard()
+        app.buttons["Create Event"].tap()
+        XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Archived memory 1"].exists)
+        tapEdge(app.buttons["Cancel"])
+        app.buttons["Future"].tap()
+        XCTAssertTrue(card("Created from Past").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["inline-add-event"].exists)
     }
 
     private func assertCanCancelDraft(at event: XCUIElement) {

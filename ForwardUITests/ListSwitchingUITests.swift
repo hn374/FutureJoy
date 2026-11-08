@@ -22,7 +22,7 @@ final class ListSwitchingUITests: XCTestCase {
         switchTo("Past")
         XCTAssertTrue(card("Board game night").waitForExistence(timeout: 5))
         assertForwardTitleIsVisible()
-        XCTAssertFalse(app.buttons["Add New Event"].exists)
+        XCTAssertTrue(app.buttons["Add New Event"].isHittable)
         XCTAssertFalse(future.exists)
         attach("Past list")
         switchTo("Future")
@@ -166,7 +166,7 @@ final class ListSwitchingUITests: XCTestCase {
             assertForwardTitleIsVisible()
             switchTo("Past")
             assertForwardTitleIsVisible()
-            XCTAssertFalse(app.buttons["Add New Event"].exists)
+            XCTAssertTrue(app.buttons["Add New Event"].isHittable)
             attach("\(profile) Past at largest text size")
             if profile == "archive-heavy" {
                 app.buttons["Select"].tap()
