@@ -7,8 +7,9 @@ import UIKit
 @MainActor
 final class StableHeaderLayoutTests: EventListTestCase {
     func testTitleAndLayoutStayStableOnBothSidesOfFittingBoundary() async throws {
-        // Title 100 + symmetric action slots 140 * 2 + spacing 12 * 2 = 404.
-        for width: CGFloat in [199, 200, 403, 404, 600] {
+        // Title 100 + leading 48 + trailing 140 + spacing 12 * 2 = 312.
+        for (width, titleCenter): (CGFloat, CGFloat) in [(199, 99.5), (200, 100), (311, 155.5),
+                                                         (312, 110), (403, 201), (404, 202), (600, 300)] {
             var baseline: CGRect?
             var baselineHeight: CGFloat?
             for actionWidth: CGFloat in [0, 80, 140] {
@@ -17,7 +18,7 @@ final class StableHeaderLayoutTests: EventListTestCase {
                 let leading = try XCTUnwrap(frames["leading"])
                 let trailing = try XCTUnwrap(frames["trailing"])
                 let header = try XCTUnwrap(frames["header"])
-                XCTAssertEqual(title.midX, width / 2, accuracy: 0.5)
+                XCTAssertEqual(title.midX, titleCenter, accuracy: 0.5)
                 XCTAssertFalse(title.intersects(leading))
                 XCTAssertFalse(title.intersects(trailing))
                 XCTAssertFalse(leading.intersects(trailing))
@@ -32,7 +33,7 @@ final class StableHeaderLayoutTests: EventListTestCase {
                     baseline = title
                     baselineHeight = header.height
                 }
-                if width >= 404 {
+                if width >= 312 {
                     XCTAssertEqual(title.midY, leading.midY, accuracy: 0.5, "Must exercise inline placement")
                 } else {
                     XCTAssertGreaterThanOrEqual(leading.minY, title.maxY + 12 - 0.5)
@@ -45,12 +46,13 @@ final class StableHeaderLayoutTests: EventListTestCase {
     }
 
     func testRightToLeftMirrorsActionsWithoutMovingTitle() async throws {
-        for width: CGFloat in [199, 403, 404, 600] {
+        for (width, titleCenter): (CGFloat, CGFloat) in [(199, 99.5), (311, 155.5), (312, 202),
+                                                         (403, 202), (404, 202), (600, 300)] {
             let frames = try await render(width: width, actionWidth: 140, direction: .rightToLeft)
             let title = try XCTUnwrap(frames["title"])
             let leading = try XCTUnwrap(frames["leading"])
             let trailing = try XCTUnwrap(frames["trailing"])
-            XCTAssertEqual(title.midX, width / 2, accuracy: 0.5)
+            XCTAssertEqual(title.midX, titleCenter, accuracy: 0.5)
             XCTAssertEqual(leading.maxX, width, accuracy: 0.5)
             XCTAssertEqual(trailing.minX, 0, accuracy: 0.5)
         }

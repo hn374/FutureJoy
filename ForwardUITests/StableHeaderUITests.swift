@@ -51,6 +51,10 @@ final class StableHeaderUITests: XCTestCase {
             for tab in ["Future", "Past"] {
                 app.buttons[tab].tap()
                 let baseline = title.frame
+                if !largeText {
+                    XCTAssertEqual(title.frame.midY, app.buttons["Select"].frame.midY, accuracy: 1)
+                    XCTAssertEqual(title.frame.midY, app.buttons["Add New Event"].frame.midY, accuracy: 1)
+                }
                 attach("\(tab) before selection \(largeText)")
                 app.buttons["Select"].tap()
                 XCTAssertTrue(app.staticTexts["0 selected"].waitForExistence(timeout: 5))
@@ -150,7 +154,6 @@ final class StableHeaderUITests: XCTestCase {
         XCTAssertEqual(actual.minY, baseline.minY, accuracy: 1, file: file, line: line)
         XCTAssertEqual(actual.width, baseline.width, accuracy: 1, file: file, line: line)
         XCTAssertEqual(actual.height, baseline.height, accuracy: 1, file: file, line: line)
-        XCTAssertEqual(actual.midX, app.frame.midX, accuracy: 1, file: file, line: line)
         XCTAssertTrue(app.frame.contains(actual), file: file, line: line)
         XCTAssertEqual(app.buttons.matching(identifier: "Scroll to top").count, 1, file: file, line: line)
     }

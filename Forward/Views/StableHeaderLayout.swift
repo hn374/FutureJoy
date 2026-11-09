@@ -14,7 +14,11 @@ struct StableHeaderLayout: Layout {
         let metrics = metrics(for: subviews)
         let inline = bounds.width >= metrics.inlineWidth
         let titleY = inline ? max(metrics.title.height, metrics.side.height) / 2 : metrics.title.height / 2
-        subviews[0].place(at: CGPoint(x: bounds.midX, y: bounds.minY + titleY),
+        let titleX = inline
+            ? min(max(bounds.midX, bounds.minX + metrics.leadingWidth + spacing + metrics.title.width / 2),
+                  bounds.maxX - metrics.trailingWidth - spacing - metrics.title.width / 2)
+            : bounds.midX
+        subviews[0].place(at: CGPoint(x: titleX, y: bounds.minY + titleY),
                           anchor: .center, proposal: ProposedViewSize(metrics.title))
 
         let separateActionRows = bounds.width < metrics.actionWidth
@@ -42,6 +46,8 @@ struct StableHeaderLayout: Layout {
         let title: CGSize
         let leading: CGSize
         let trailing: CGSize
+        let leadingWidth: CGFloat
+        let trailingWidth: CGFloat
         let side: CGSize
         let inlineWidth: CGFloat
         let actionWidth: CGFloat
@@ -51,12 +57,12 @@ struct StableHeaderLayout: Layout {
             self.title = title
             self.leading = leading
             self.trailing = trailing
-            let leadingWidth = max(leading.width, leadingReservation.width)
-            let trailingWidth = max(trailing.width, trailingReservation.width)
+            leadingWidth = max(leading.width, leadingReservation.width)
+            trailingWidth = max(trailing.width, trailingReservation.width)
             side = CGSize(width: max(leadingWidth, trailingWidth),
                           height: max(leading.height, trailing.height,
                                       leadingReservation.height, trailingReservation.height))
-            inlineWidth = title.width + 2 * side.width + 2 * spacing
+            inlineWidth = title.width + leadingWidth + trailingWidth + 2 * spacing
             actionWidth = leadingWidth + spacing + trailingWidth
         }
 
