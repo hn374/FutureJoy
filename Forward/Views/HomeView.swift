@@ -113,29 +113,20 @@ struct HomeView: View {
     private func headerView(scrollProxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 6) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 8) {
-                        leadingHeaderAction
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        appTitle(scrollProxy: scrollProxy)
-                        trailingHeaderAction
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
-                    VStack(spacing: 8) {
-                        appTitle(scrollProxy: scrollProxy)
-                        ViewThatFits(in: .horizontal) {
-                            HStack {
-                                leadingHeaderAction
-                                Spacer()
-                                trailingHeaderAction
-                            }
-                            VStack(alignment: .trailing, spacing: 8) {
-                                leadingHeaderAction
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                trailingHeaderAction
-                            }
-                        }
-                    }
+                StableHeaderLayout(spacing: 8) {
+                    appTitle(scrollProxy: scrollProxy)
+                        .accessibilitySortPriority(2)
+                    leadingHeaderAction
+                        .accessibilitySortPriority(3)
+                    trailingHeaderAction
+                    maximumLeadingAction
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
+                    maximumTrailingActions
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
@@ -266,9 +257,7 @@ struct HomeView: View {
                 Button {
                     viewModel.confirmDeleteSelected()
                 } label: {
-                    Image(systemName: "trash")
-                        .frame(minWidth: 44, minHeight: 44)
-                        .contentShape(Rectangle())
+                    trashLabel
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Trash")
@@ -276,6 +265,27 @@ struct HomeView: View {
             }
             addEventButton
         }
+    }
+
+    private var maximumLeadingAction: some View {
+        ZStack {
+            headerTextLabel("Select")
+            headerTextLabel("Cancel")
+        }
+    }
+
+    private var maximumTrailingActions: some View {
+        HStack(spacing: 8) {
+            trashLabel
+            addEventLabel
+        }
+        .fixedSize()
+    }
+
+    private var trashLabel: some View {
+        Image(systemName: "trash")
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
     }
 
     // MARK: - Add Event Button
