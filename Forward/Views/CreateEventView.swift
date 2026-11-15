@@ -28,21 +28,12 @@ struct CreateEventView: View {
         "👶", "👨‍👩‍👧", "🐕", "🐈", "🌺", "🎁", "💰", "⭐"
     ]
     
-    private func isOnOrAfterToday(_ date: Date) -> Bool {
-        let calendar = Calendar.current
-        let startOfSelected = calendar.startOfDay(for: date)
-        let startOfToday = calendar.startOfDay(for: Date())
-        return startOfSelected >= startOfToday
-    }
-    
-    private var isFormValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        isOnOrAfterToday(date)
+    private var draft: EventDraft {
+        EventDraft(title: title, emoji: selectedEmoji, date: date, location: location, notes: notes)
     }
 
-    private var emojiForSaving: String {
-        let emoji = EventEmojiInput.limit(selectedEmoji)
-        return emoji.isEmpty ? "🎉" : emoji
+    private var isFormValid: Bool {
+        (try? draft.prepare(for: .creation, now: Date(), calendar: .current)) != nil
     }
     
     var body: some View {
@@ -314,17 +305,17 @@ struct CreateEventView: View {
     
     // MARK: - Save Event
     private func saveEvent() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedLocation = location.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let fields = try? draft.prepare(for: .creation, now: Date(), calendar: .current) else {
+            return
+        }
         
         do {
             try viewModel.addEvent(
-                title: trimmedTitle,
-                emoji: emojiForSaving,
-                date: date,
-                location: trimmedLocation.isEmpty ? nil : trimmedLocation,
-                notes: trimmedNotes.isEmpty ? nil : trimmedNotes
+                title: fields.title,
+                emoji: fields.emoji,
+                date: fields.date,
+                location: fields.location,
+                notes: fields.notes
             )
             viewModel.presentToast(message: "Event created successfully", style: .success)
             onClose()
