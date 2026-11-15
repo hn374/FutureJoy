@@ -196,6 +196,9 @@ Xcode 26.1.1, and a fresh iPhone 17 simulator running iOS 26.1. The shared
 The gate runs all `ForwardTests` except the opt-in `EventListBenchmarkTests`.
 The focused UI tests are:
 
+- `EventDeleteConfirmationUITests/testSingleDeleteAlertCancelsThenDeletesCapturedEvent`
+- `EventDeleteConfirmationUITests/testBulkAlertCancellationPreservesSelectionAndConfirmationDeletesOnlySelected`
+
 - `EventCreationEmojiUITests/testCreateEventWithCustomEmojiPersistsAndCanBeEdited`
 - `SimulatorSampleDataUITests/testProfilesSwitchPersistAndResetIndependently`
 - `SimulatorSampleDataUITests/testSampleEditsAndDeletionPersistUntilExplicitReset`
