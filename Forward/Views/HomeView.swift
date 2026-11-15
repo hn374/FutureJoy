@@ -75,19 +75,19 @@ struct HomeView: View {
             .overlay(alignment: .bottom) {
                 toastOverlay
             }
-            .alert("Delete Event", isPresented: $viewModel.showingDeleteConfirmation) {
+            .alert("Delete Event", isPresented: Binding(
+                get: { viewModel.pendingDeletion != nil },
+                // Alert actions own cancellation/consumption, regardless of dismissal write order.
+                set: { _ in }
+            ), presenting: viewModel.pendingDeletion) { target in
                 Button("Cancel", role: .cancel) {
                     viewModel.cancelDelete()
                 }
                 Button("Delete", role: .destructive) {
-                    viewModel.deleteConfirmedEvent()
+                    viewModel.deleteConfirmedEvent(target)
                 }
-            } message: {
-                if viewModel.isSelectionMode, !viewModel.selectedEventIDs.isEmpty {
-                    Text("Delete \(viewModel.selectedEventIDs.count) selected event(s)? This action cannot be undone.")
-                } else if let event = viewModel.eventToDelete {
-                    Text("Are you sure you want to delete \"\(event.title)\"? This action cannot be undone.")
-                }
+            } message: { target in
+                Text(target.message)
             }
             .onAppear {
                 viewModel.archivePastEvents()

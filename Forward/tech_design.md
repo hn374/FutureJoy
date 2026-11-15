@@ -64,13 +64,13 @@ Event.swift (SwiftData + CloudKit-ready)
 
 4. ViewModels
 EventListViewModel.swift (@MainActor, ObservableObject)
-- State: `events`, `showingCreateEvent`, `eventToDelete`, `showingDeleteConfirmation`
+- State: `events`, `showingCreateEvent`, `pendingDeletion`
 - Persistence: owns `ModelContext`
 - Fetch: Future sorts ascending by date and Past sorts descending by date
 - Archive: `archivePastEvents()` marks overdue events archived, then refetches the active list
 - Edit: `saveEdit(_:for:)` rejects dates before today, saves the event and any newly overdue archive flags together, and refetches the active list. A failed write restores the fields changed by the operation. A failed read after the write leaves the edit saved and lets Home retry the list refresh.
 - Add: `addEvent(...)` creates and saves new Event (emoji required)
-- Delete: two-step delete with confirmation (`confirmDelete`, `deleteConfirmedEvent`, `cancelDelete`)
+- Delete: confirmation freezes the target IDs and alert wording. `deleteConfirmedEvent(_:)` resolves those IDs from storage.
 
 5. Views
 - HomeView.swift

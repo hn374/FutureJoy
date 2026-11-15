@@ -78,6 +78,33 @@ enum EventEditError: Error {
     case dateInPast
 }
 
+// Immutable wording and IDs for the operation the user is being asked to confirm.
+enum PendingEventDeletion: Equatable {
+    case single(id: UUID, title: String)
+    case bulk(ids: Set<UUID>)
+
+    var ids: Set<UUID> {
+        switch self {
+        case .single(let id, _): return [id]
+        case .bulk(let ids): return ids
+        }
+    }
+
+    var isBulk: Bool {
+        if case .bulk = self { return true }
+        return false
+    }
+
+    var message: String {
+        switch self {
+        case .single(_, let title):
+            return "Are you sure you want to delete \"\(title)\"? This action cannot be undone."
+        case .bulk(let ids):
+            return "Delete \(ids.count) selected event(s)? This action cannot be undone."
+        }
+    }
+}
+
 @MainActor
 final class EventListViewModel: ObservableObject {
     
@@ -90,13 +117,10 @@ final class EventListViewModel: ObservableObject {
     @Published var events: [Event] = []
     @Published var filter: EventListFilter = .future
     @Published var showingCreateEvent = false
-    @Published var eventToDelete: Event?
-    @Published var showingDeleteConfirmation = false
+    @Published private(set) var pendingDeletion: PendingEventDeletion?
     @Published var isSelectionMode = false
     @Published var selectedEventIDs: Set<UUID> = []
     @Published var toast: ToastData?
-    
-    private var isBulkDeletePending = false
     
     init(
         modelContext: ModelContext,
@@ -165,7 +189,7 @@ final class EventListViewModel: ObservableObject {
 
     /// Updates the active filter and refreshes the list
     func setFilter(_ newFilter: EventListFilter) {
-        guard !isSelectionMode, newFilter != filter else { return }
+        guard !isSelectionMode, pendingDeletion == nil, newFilter != filter else { return }
         filter = newFilter
         fetchEvents()
     }
@@ -249,25 +273,22 @@ final class EventListViewModel: ObservableObject {
     
     /// Prepares to delete an event (shows confirmation)
     func confirmDelete(_ event: Event) {
-        guard isSelectionMode == false else { return }
-        eventToDelete = event
-        showingDeleteConfirmation = true
+        guard !isSelectionMode, pendingDeletion == nil else { return }
+        pendingDeletion = .single(id: event.id, title: event.title)
     }
     
     /// Starts multi-select mode
     func enterSelectionMode() {
         isSelectionMode = true
         selectedEventIDs.removeAll()
-        eventToDelete = nil
-        showingDeleteConfirmation = false
-        isBulkDeletePending = false
+        pendingDeletion = nil
     }
     
     /// Exits multi-select mode and clears selection
     func exitSelectionMode() {
         isSelectionMode = false
         selectedEventIDs.removeAll()
-        isBulkDeletePending = false
+        pendingDeletion = nil
     }
     
     /// Toggles selection state for an event
@@ -284,71 +305,49 @@ final class EventListViewModel: ObservableObject {
         selectedEventIDs.contains(event.id)
     }
     
-    /// Requests confirmation to delete selected events
+    /// Freezes the selected records when confirmation opens.
     func confirmDeleteSelected() {
-        guard isSelectionMode else { return }
-        guard selectedEventIDs.isEmpty == false else {
+        guard isSelectionMode, pendingDeletion == nil else { return }
+        let ids = selectedEventIDs.intersection(events.map(\.id))
+        guard !ids.isEmpty else {
             presentToast(message: "Select events to delete", style: .error)
             return
         }
-        
-        isBulkDeletePending = true
-        showingDeleteConfirmation = true
+        pendingDeletion = .bulk(ids: ids)
     }
-    
-    /// Deletes the selected event after confirmation
-    func deleteConfirmedEvent() {
-        if isBulkDeletePending {
-            deleteSelectedEvents()
-            isBulkDeletePending = false
-            showingDeleteConfirmation = false
-            return
-        }
-        
-        guard let event = eventToDelete else { return }
-        
-        modelContext.delete(event)
-        
+
+    /// The captured alert value is a guard; only the current pending operation can execute.
+    func deleteConfirmedEvent(_ expected: PendingEventDeletion) {
+        guard let target = pendingDeletion, target == expected else { return }
+        pendingDeletion = nil
+
         do {
-            try modelContext.save()
+            // Resolve from persistence: a target may have left the visible list meanwhile.
+            let matches = try modelContext.fetch(FetchDescriptor<Event>())
+                .filter { target.ids.contains($0.id) }
+            if !matches.isEmpty {
+                matches.forEach { modelContext.delete($0) }
+                try modelContext.save()
+                presentToast(message: target.isBulk ? "Events deleted" : "Event deleted", style: .success)
+            }
             fetchEvents()
-            presentToast(message: "Event deleted", style: .success)
+            if target.isBulk { exitSelectionMode() }
         } catch {
-            print("Failed to delete event: \(error)")
-            presentToast(message: "Could not delete event. Please try again.", style: .error)
-        }
-        
-        eventToDelete = nil
-        showingDeleteConfirmation = false
-    }
-    
-    /// Deletes all selected events
-    private func deleteSelectedEvents() {
-        let ids = selectedEventIDs
-        guard ids.isEmpty == false else { return }
-        
-        events
-            .filter { ids.contains($0.id) }
-            .forEach { modelContext.delete($0) }
-        
-        do {
-            try modelContext.save()
-            fetchEvents()
-            presentToast(message: "Events deleted", style: .success)
-            exitSelectionMode()
-        } catch {
-            print("Failed to delete selected events: \(error)")
-            presentToast(message: "Could not delete selected events. Please try again.", style: .error)
+            print("Failed to delete confirmed events: \(error)")
+            presentToast(
+                message: target.isBulk
+                    ? "Could not delete selected events. Please try again."
+                    : "Could not delete event. Please try again.",
+                style: .error
+            )
         }
     }
-    
-    /// Cancels the delete operation
+
+    /// Cancels confirmation while leaving the selection intact.
     func cancelDelete() {
-        eventToDelete = nil
-        showingDeleteConfirmation = false
-        isBulkDeletePending = false
+        pendingDeletion = nil
     }
-    
+
     /// Presents a toast message with auto dismissal
     func presentToast(message: String, style: ToastStyle, duration: TimeInterval = 2.5) {
         let toastData = ToastData(message: message, style: style)
