@@ -216,7 +216,7 @@ final class EventListViewModel: ObservableObject {
     /// Archives events that have passed
     func archivePastEvents() {
         do {
-            let pastEvents = try overdueEvents(before: calendar().startOfDay(for: now()))
+            let pastEvents = try overdueEvents(before: EventCalendarDay.startOfToday(now: now(), calendar: calendar()))
             for event in pastEvents {
                 event.isArchived = true
             }
