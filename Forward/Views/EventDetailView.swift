@@ -12,7 +12,7 @@ import Combine
 struct EventDetailView: View {
     let event: Event
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
+    private let saveEdit: (EventEdit, Event) throws -> Void
     
     @State private var now = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -26,8 +26,9 @@ struct EventDetailView: View {
     @State private var editedNotes: String
     @State private var alertMessage: String?
     
-    init(event: Event) {
+    init(event: Event, saveEdit: @escaping (EventEdit, Event) throws -> Void) {
         self.event = event
+        self.saveEdit = saveEdit
         _editedTitle = State(initialValue: event.title)
         _editedEmoji = State(initialValue: event.emoji)
         _editedDate = State(initialValue: event.date)
@@ -531,16 +532,19 @@ struct EventDetailView: View {
             return
         }
         
-        event.title = trimmedTitle
-        event.emoji = emoji
-        event.date = editedDate
-        event.isArchived = false
-        event.location = trimmedLocation.isEmpty ? nil : trimmedLocation
-        event.notes = trimmedNotes.isEmpty ? nil : trimmedNotes
-        
+        let edit = EventEdit(
+            title: trimmedTitle,
+            emoji: emoji,
+            date: editedDate,
+            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
+            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
+        )
+
         do {
-            try modelContext.save()
+            try saveEdit(edit, event)
             isEditing = false
+        } catch EventEditError.dateInPast {
+            alertMessage = "Event date cannot be in the past."
         } catch {
             alertMessage = "Something went wrong while saving. Please try again."
         }
@@ -567,8 +571,9 @@ struct EventDetailView: View {
     )
     container.mainContext.insert(sample)
     
+    let viewModel = EventListViewModel(modelContext: container.mainContext)
     return NavigationStack {
-        EventDetailView(event: sample)
+        EventDetailView(event: sample, saveEdit: viewModel.saveEdit)
     }
     .modelContainer(container)
 }

@@ -92,6 +92,9 @@ struct HomeView: View {
             .onAppear {
                 viewModel.archivePastEvents()
             }
+            .navigationDestination(for: Event.self) { event in
+                EventDetailView(event: event, saveEdit: viewModel.saveEdit)
+            }
             .toolbar(.hidden, for: .navigationBar)
         }
     }
@@ -345,9 +348,7 @@ struct HomeView: View {
                             viewModel.toggleSelection(for: event)
                         }
                     } else {
-                        NavigationLink {
-                            EventDetailView(event: event)
-                        } label: {
+                        NavigationLink(value: event) {
                             EventRowView(event: event) {
                                 viewModel.confirmDelete(event)
                             }
