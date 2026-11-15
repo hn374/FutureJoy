@@ -196,9 +196,6 @@ Xcode 26.1.1, and a fresh iPhone 17 simulator running iOS 26.1. The shared
 The gate runs all `ForwardTests` except the opt-in `EventListBenchmarkTests`.
 The focused UI tests are:
 
-- `EventDeleteConfirmationUITests/testSingleDeleteAlertCancelsThenDeletesCapturedEvent`
-- `EventDeleteConfirmationUITests/testBulkAlertCancellationPreservesSelectionAndConfirmationDeletesOnlySelected`
-
 - `EventCreationEmojiUITests/testCreateEventWithCustomEmojiPersistsAndCanBeEdited`
 - `SimulatorSampleDataUITests/testProfilesSwitchPersistAndResetIndependently`
 - `SimulatorSampleDataUITests/testSampleEditsAndDeletionPersistUntilExplicitReset`
@@ -206,7 +203,8 @@ The focused UI tests are:
 - `SimulatorSampleDataUITests/testArchivedEventRescheduledToFutureMovesListsAndPersists`
 - `SimulatorSampleDataUITests/testArchivedEventRescheduledToTodayMovesListsAndPersists`
 
-Additional local regression coverage includes `PersistentHeaderUITests` for persistent
+Additional local regression coverage includes `EventDeleteConfirmationUITests` for single
+and bulk delete confirmation, cancellation, and persistence, plus `PersistentHeaderUITests` for persistent
 creation, draft cancellation, selection, empty/Past states, and accessible touch
 areas, plus `ListSwitchingUITests` for scroll reset and title scrolling.
 Tap the Forward title to scroll the active list to its beginning with a brief

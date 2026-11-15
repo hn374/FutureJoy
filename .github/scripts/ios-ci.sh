@@ -8,8 +8,6 @@ mkdir -p "$RUNNER_TEMP"
 
 test_filters=(
   -only-testing:ForwardTests
-  -only-testing:ForwardUITests/EventDeleteConfirmationUITests/testSingleDeleteAlertCancelsThenDeletesCapturedEvent
-  -only-testing:ForwardUITests/EventDeleteConfirmationUITests/testBulkAlertCancellationPreservesSelectionAndConfirmationDeletesOnlySelected
   -skip-testing:ForwardTests/EventListBenchmarkTests
   -only-testing:ForwardUITests/EventCreationEmojiUITests/testCreateEventWithCustomEmojiPersistsAndCanBeEdited
   -only-testing:ForwardUITests/SimulatorSampleDataUITests/testProfilesSwitchPersistAndResetIndependently
