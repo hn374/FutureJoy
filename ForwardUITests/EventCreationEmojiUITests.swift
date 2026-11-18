@@ -31,6 +31,7 @@ final class EventCreationEmojiUITests: XCTestCase {
     func testCreateEventWithCustomEmojiPersistsAndCanBeEdited() {
         let title = openCreation(titlePrefix: "Concert Night")
         replaceEmoji(with: "🧑🏽‍🚀")
+        assertEmoji("🧑🏽‍🚀")
         dismissKeyboard()
         attachScreenshot(named: "Custom emoji during creation")
         saveAndAssertCard(title, emoji: "🧑🏽‍🚀")
@@ -42,6 +43,7 @@ final class EventCreationEmojiUITests: XCTestCase {
         assertCard(title, emoji: "🧑🏽‍🚀")
         openEditor(title, expectedEmoji: "🧑🏽‍🚀")
         replaceEmoji(with: "🦦")
+        assertEmoji("🦦")
         app.buttons["Save changes"].tap()
         app.buttons["Back"].tap()
         assertCard(title, emoji: "🦦")
@@ -107,11 +109,15 @@ final class EventCreationEmojiUITests: XCTestCase {
         let field = app.textFields["Emoji"]
         reveal(field)
         XCTAssertTrue(field.exists, "Creation must allow custom emoji input")
-        field.tap()
+        // Place the caret after the center-aligned emoji before sending Backspace.
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).tap()
         let current = field.value as? String ?? ""
         if !current.isEmpty && current != field.placeholderValue {
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
         }
+        let empty = NSPredicate(format: "value == '' OR value == placeholderValue")
+        expectation(for: empty, evaluatedWith: field)
+        waitForExpectations(timeout: 3)
         if !text.isEmpty {
             pasteEmoji(text)
         }
@@ -130,7 +136,12 @@ final class EventCreationEmojiUITests: XCTestCase {
         if paste.waitForExistence(timeout: 2) {
             paste.tap()
         } else {
-            app.buttons["Paste"].tap()
+            let pasteButton = app.buttons["Paste"]
+            guard pasteButton.waitForExistence(timeout: 2) else {
+                XCTFail("The system Paste control did not appear for the Emoji field.")
+                return
+            }
+            pasteButton.tap()
         }
         let allowPaste = app.alerts.buttons["Allow Paste"]
         if allowPaste.waitForExistence(timeout: 1) {

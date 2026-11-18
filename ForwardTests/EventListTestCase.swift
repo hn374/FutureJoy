@@ -7,13 +7,7 @@ import UIKit
 @MainActor
 class EventListTestCase: XCTestCase {
     func store(count: Int = 10_000) throws -> ModelContainer {
-        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
-        let schema = Schema([Event.self])
-        let container = try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, url: directory.appending(path: "Events.store"), cloudKitDatabase: .none)
-        ])
+        let container = try ModelContainer(for: Event.self, configurations: makeStoreConfiguration())
         let context = ModelContext(container)
         context.autosaveEnabled = false
         let today = Calendar.current.startOfDay(for: Date())
@@ -25,6 +19,17 @@ class EventListTestCase: XCTestCase {
         }
         try context.save()
         return container
+    }
+
+    func makeStoreConfiguration() throws -> ModelConfiguration {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        addTeardownBlock { try FileManager.default.removeItem(at: directory) }
+        return ModelConfiguration(
+            schema: Schema([Event.self]),
+            url: directory.appending(path: "Events.store"),
+            cloudKitDatabase: .none
+        )
     }
 
     func makeWindow() -> UIWindow {
