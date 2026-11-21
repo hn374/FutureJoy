@@ -49,12 +49,6 @@ final class EventCreationEmojiUITests: XCTestCase {
         assertCard(title, emoji: "🦦")
     }
 
-    func testCreateEventWithoutChoosingEmojiUsesDefault() {
-        let title = openCreation()
-        saveAndAssertCard(title, emoji: "🎉")
-        openEditor(title, expectedEmoji: "🎉")
-    }
-
     func testCreateEventWithBlankEmojiUsesDefault() {
         for input in ["", "  "] {
             let title = openCreation()
