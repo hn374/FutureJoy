@@ -137,7 +137,6 @@ final class EventListViewModel: ObservableObject {
         archivePastEvents()
     }
     
-    /// Saves the edit and reconciles the active list against the same calendar day.
     func saveEdit(_ edit: EventEdit, for event: Event) throws {
         let today = calendar().startOfDay(for: now())
         guard edit.date >= today else { throw EventEditError.dateInPast }
@@ -174,7 +173,6 @@ final class EventListViewModel: ObservableObject {
         do {
             events = try loadEvents(for: filter)
         } catch {
-            // The edit is already committed. Home can retry the list read on return.
             print("Failed to refresh events after saving: \(error)")
         }
     }

@@ -109,7 +109,6 @@ final class EventCreationEmojiUITests: XCTestCase {
         let field = app.textFields["Emoji"]
         reveal(field)
         XCTAssertTrue(field.exists, "Creation must allow custom emoji input")
-        // Place the caret after the center-aligned emoji before sending Backspace.
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5)).tap()
         let current = field.value as? String ?? ""
         if !current.isEmpty && current != field.placeholderValue {
