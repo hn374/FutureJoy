@@ -1,26 +1,29 @@
 # Issue #62: shared event draft preparation
 
-**Merge hold: do not merge until [issue #60](https://github.com/hn374/FutureJoy/issues/60) lands.** Hoang approved implementing #62 first, with this explicit dependency.
+## Lifecycle integration complete
 
-The draft module prepares and validates fields without persistence or list side effects. Creation currently saves through `EventListViewModel.addEvent`; editing still applies prepared fields and saves through its existing owner. These are transitional integration points.
+[Issue #60](https://github.com/hn374/FutureJoy/issues/60) landed in [PR #64](https://github.com/hn374/FutureJoy/pull/64). The #62 branch is rebased onto main at `baeb363b`, integrated, and freshly verified. The historical wait-for-#60 condition is resolved.
 
-Before merging:
+`EventDraft` remains a Foundation-only module for validation and field preparation. Creation passes prepared values through `EventListViewModel.addEvent`. Editing maps all five prepared values to `EventEdit` and calls the injected `saveEdit` callback provided by Home's shared view model. The editor no longer mutates/saves records or resets archive flags itself.
 
-- Rebase onto the landed #60 change and route prepared edits through its lifecycle save/reschedule API.
-- Reuse one calendar-day rule across draft preparation, lifecycle validation, and archive reconciliation. Avoid parallel helpers or persistence owners.
-- Preserve untouched legacy emoji and explicit user-touch history, creation's blank emoji default, editing's blank rejection, validation precedence, and optional-field normalization.
-- Rerun functional unit tests, focused creation/edit/cancel/date UI regressions, and the repository CI gate after that integration.
+`EventCalendarDay` is shared by draft validation, the edit DatePicker boundary, and the lifecycle's save validation and archive reconciliation. The lifecycle's injectable clock/calendar remain intact. The integration retains #60's per-record rollback on failed edit saves, unrelated pending changes, and post-save list-read fallback. Main's newer delete-confirmation, header behavior, and hardened emoji UI helpers are preserved.
 
-This refactor does not fix persistence rollback (#52), automatic day/import refresh (#53), or draft dismissal behavior (#58). No CloudKit cross-device or physical-device verification is claimed.
+Creation still defaults a blank emoji to 🎉; editing rejects a blank emoji and preserves untouched legacy values exactly. Title/location/notes normalization, validation precedence, explicit emoji-touch tracking, selected dates, category/createdAt, and cancellation behavior are preserved. Lifecycle date rejection maps to the existing date alert if a prepared draft becomes stale before saving.
 
-## Implementation
+## Verification — November 21
 
-`EventDraft` prepares fields and returns typed validation errors; `EventCalendarDay` shares the existing day-boundary rule. Both forms consume prepared values. Emoji input formatting and edit touch/reset tracking are preserved. Creation now also revalidates when Save is invoked, so a draft that became stale after midnight cannot bypass validation through old button state.
+- Repository local CI gate passed: **54 unit tests + 6 selected UI flows**, with the exact inventory and required identifiers verified; benchmarks absent. Result: `/tmp/Forward62IntegrationCI/ForwardTests.xcresult`; log: `/tmp/Forward62IntegrationCI.log`.
+- Supplementary creation, editing, legacy-emoji, cancellation, normalization/persistence and date UI coverage passed: **10 additional UI cases**, with exact inventory verified. Result: `/tmp/Forward62IntegrationUI.xcresult`; log: `/tmp/Forward62IntegrationUI.log`.
+- Total current coverage: **54 unit tests and 16 focused UI flows**. New composition tests reopen saved prepared fields/legacy emoji and verify lifecycle rejection after an injected local-day change. Existing #60 rollback/read-failure/list tests remain green.
+- Fresh Astra review (`gpt-6.2-astra`) found no Critical or Important defect. The final source matches the reviewed snapshot. One minor test-selector ambiguity is deferred below.
+- Xcode 26.1.1, iOS 26.1, dedicated disposable iPhone 17 simulator signed out of personal iCloud; signing enabled; tests serial. `git diff --check` and CI shell syntax checks passed.
 
-## Verification
+New SwiftData composition tests use the repository's async XCTest convention. An initial synchronous fixture run crashed in actor-isolated model deinitialization; the async correction passed both cases and the full unit suite without a production workaround.
 
-Astra independently reviewed the complete implementation: no Critical, Important, or Minor findings. No corrective changes requested. The final combined run passed all 35 unit tests and 18 UI tests (53 total), with the exact selected inventory verified and opt-in benchmarks absent. Result: `/tmp/Forward62Final.xcresult`; log: `/tmp/Forward62Final.log`. The implementation diff is unchanged from Astra's reviewed snapshot. The repository local CI gate (`bash .github/scripts/ios-ci.sh`) also passed: 35 unit tests plus its 6 selected UI cases, 41 total. The script verified every required unit/selected UI case ran and benchmarks did not. Result: `/tmp/Forward62CI/ForwardTests.xcresult`; log: `/tmp/Forward62CI.log`.
+## Deferred minor and scope
 
-Verification used Xcode 26.1.1 and a dedicated disposable iPhone 17 simulator on iOS 26.1, signed out of personal iCloud, with parallel testing disabled. `git diff --check` and CI shell syntax checks passed.
+The inherited `EventCreationEmojiUITests.card(_:)` selector uses a title substring and `.firstMatch`. A future accessibility ordering change could select the matching Delete button. The sample-data helper already excludes labels beginning with `Delete `; applying that exclusion is a focused test-cleanup follow-up. Current selected cases passed; product behavior is unaffected.
 
-The work remains local on `codex/event-draft-62`; no push, PR, or merge was performed. Preserve this hold in any later PR description.
+No schema/storage migration, automatic day/import refresh (#53), or dismissal redesign (#58) is included. Broader creation/standalone-archive recovery in #52 is not expanded; #60's edit-save rollback is preserved. No CloudKit cross-device or physical-device verification is claimed.
+
+Work remains local on `codex/event-draft-62`. The pre-rebase state is preserved as `codex/event-draft-62-before-lifecycle`. No push, PR, or merge was performed for this integration request.
