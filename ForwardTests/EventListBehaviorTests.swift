@@ -92,12 +92,11 @@ final class EventListBehaviorTests: EventListTestCase {
         XCTAssertEqual(model.events.count, 10_000)
         let originalIDs = Set(model.events.map(\.id))
         XCTAssertEqual(originalIDs.count, 10_000)
-        let added = try model.addEvent(title: "New earliest event", emoji: "🌻", date: Date())
+        let today = Calendar.current.startOfDay(for: Date())
+        let added = try model.addEvent(title: "New earliest event", emoji: "🌻", date: today)
         XCTAssertEqual(model.events.first?.id, added.id)
         let edited = try XCTUnwrap(model.events.last)
-        edited.date = Date().addingTimeInterval(60)
-        try context.save()
-        model.fetchEvents()
+        try model.saveEdit(rescheduledEdit(to: today.addingTimeInterval(60)), for: edited)
         XCTAssertEqual(model.events.prefix(2).map(\.id), [added.id, edited.id])
         model.confirmDelete(added)
         model.deleteConfirmedEvent(try XCTUnwrap(model.pendingDeletion))
@@ -193,6 +192,221 @@ final class EventListBehaviorTests: EventListTestCase {
         window.rootViewController = nil
         try await Task.sleep(for: .milliseconds(200))
         withExtendedLifetime(controller) {}
+    }
+
+    func testArchivedEditToTodayMovesToFutureAndPersists() async throws {
+        try assertArchivedEdit(daysFromToday: 0)
+    }
+
+    func testArchivedEditToLaterDateMovesToFutureAndPersists() async throws {
+        try assertArchivedEdit(daysFromToday: 2)
+    }
+
+    func testEditBeforeTodayIsRejectedWithoutSaving() async throws {
+        let calendar = testCalendar
+        let now = testNow
+        let today = calendar.startOfDay(for: now)
+        let container = try store(count: 0)
+        let context = ModelContext(container)
+        let event = Event(title: "Original", emoji: "🌙", date: today)
+        context.insert(event)
+        try context.save()
+        let model = EventListViewModel(modelContext: context, now: { now }, calendar: { calendar })
+        let invalidEdit = rescheduledEdit(to: today.addingTimeInterval(-1))
+
+        XCTAssertThrowsError(try model.saveEdit(invalidEdit, for: event)) { error in
+            XCTAssertEqual(error as? EventEditError, .dateInPast)
+        }
+        XCTAssertFalse(context.hasChanges)
+        XCTAssertEqual(model.events.map(\.id), [event.id])
+        XCTAssertEqual(event.title, "Original")
+        XCTAssertEqual(event.date, today)
+        XCTAssertEqual(try ModelContext(container).fetch(FetchDescriptor<Event>()).first?.date, today)
+    }
+
+    func testFailedEditRestoresFieldsAndOverdueFlagsAndCanRetry() async throws {
+        let calendar = testCalendar
+        var now = testNow
+        let today = calendar.startOfDay(for: now)
+        let tomorrow = try XCTUnwrap(calendar.date(byAdding: .day, value: 1, to: today))
+        let configuration = try makeStoreConfiguration()
+        let editedID = try withLocalStore(configuration) { context in
+            context.autosaveEnabled = true
+            let yesterday = today.addingTimeInterval(-1)
+            let event = Event(title: "Original", emoji: "🌙", date: yesterday, location: "Old location", notes: "Old notes")
+            event.isArchived = true
+            let overdue = Event(title: "Due today", emoji: "☀️", date: today)
+            let unrelated = Event(title: "Unrelated", emoji: "🌻", date: tomorrow)
+            for row in [event, overdue, unrelated] { context.insert(row) }
+            try context.save()
+
+            var shouldFail = true
+            let model = EventListViewModel(
+                modelContext: context,
+                now: { now },
+                calendar: { calendar },
+                save: { context in
+                    if shouldFail { throw InjectedStoreError.failure }
+                    try context.save()
+                }
+            )
+            model.setFilter(.past)
+            now = tomorrow
+            unrelated.notes = "Pending unrelated change"
+            let edit = rescheduledEdit(to: tomorrow)
+
+            XCTAssertThrowsError(try model.saveEdit(edit, for: event)) { error in
+                XCTAssertEqual(error as? InjectedStoreError, .failure)
+            }
+            XCTAssertEqual(model.events.map(\.id), [event.id])
+            XCTAssertEqual(event.title, "Original")
+            XCTAssertEqual(event.emoji, "🌙")
+            XCTAssertEqual(event.date, yesterday)
+            XCTAssertEqual(event.location, "Old location")
+            XCTAssertEqual(event.notes, "Old notes")
+            XCTAssertTrue(event.isArchived)
+            XCTAssertFalse(overdue.isArchived)
+            XCTAssertEqual(unrelated.notes, "Pending unrelated change")
+
+            try context.save()
+            let persisted = try ModelContext(context.container).fetch(FetchDescriptor<Event>())
+            XCTAssertEqual(persisted.first { $0.id == event.id }?.title, "Original")
+            XCTAssertEqual(persisted.first { $0.id == event.id }?.isArchived, true)
+            XCTAssertEqual(persisted.first { $0.id == overdue.id }?.isArchived, false)
+            XCTAssertEqual(persisted.first { $0.id == unrelated.id }?.notes, "Pending unrelated change")
+
+            shouldFail = false
+            try model.saveEdit(edit, for: event)
+            XCTAssertEqual(model.events.map(\.id), [overdue.id])
+            return event.id
+        }
+
+        try withLocalStore(configuration) { context in
+            let events = try context.fetch(FetchDescriptor<Event>())
+            XCTAssertEqual(events.count, 3)
+            let edited = try XCTUnwrap(events.first { $0.id == editedID })
+            XCTAssertEqual(edited.date, tomorrow)
+            XCTAssertEqual(edited.title, "Rescheduled")
+            XCTAssertFalse(edited.isArchived)
+            XCTAssertEqual(events.first { $0.title == "Due today" }?.isArchived, true)
+        }
+    }
+
+    func testFailedPostSaveListReadKeepsSnapshotUntilHomeRefresh() async throws {
+        let calendar = testCalendar
+        let now = testNow
+        let today = calendar.startOfDay(for: now)
+        let container = try store(count: 0)
+        let context = ModelContext(container)
+        let event = Event(title: "Original", emoji: "🌙", date: today.addingTimeInterval(-1))
+        event.isArchived = true
+        let newer = Event(title: "Newer Past", emoji: "🌙", date: today.addingTimeInterval(-2))
+        newer.isArchived = true
+        let older = Event(title: "Older Past", emoji: "🌙", date: today.addingTimeInterval(-3))
+        older.isArchived = true
+        for row in [event, newer, older] { context.insert(row) }
+        try context.save()
+
+        var shouldFailRead = false
+        let model = EventListViewModel(
+            modelContext: context,
+            now: { now },
+            calendar: { calendar },
+            fetchList: { context, descriptor in
+                if shouldFailRead {
+                    shouldFailRead = false
+                    throw InjectedStoreError.failure
+                }
+                return try context.fetch(descriptor)
+            }
+        )
+        model.setFilter(.past)
+        XCTAssertEqual(model.events.map(\.id), [event.id, newer.id, older.id])
+        shouldFailRead = true
+        try model.saveEdit(rescheduledEdit(to: today), for: event)
+
+        let persisted = try ModelContext(container).fetch(FetchDescriptor<Event>())
+        let saved = try XCTUnwrap(persisted.first { $0.id == event.id })
+        XCTAssertEqual(saved.date, today)
+        XCTAssertFalse(saved.isArchived)
+        XCTAssertEqual(model.events.map(\.id), [event.id, newer.id, older.id])
+        XCTAssertFalse(context.hasChanges)
+
+        model.archivePastEvents()
+
+        XCTAssertEqual(model.filter, .past)
+        XCTAssertEqual(model.events.map(\.id), [newer.id, older.id])
+        XCTAssertFalse(context.hasChanges)
+    }
+
+    private enum InjectedStoreError: Error {
+        case failure
+    }
+
+    private var testCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: -5 * 3600)!
+        return calendar
+    }
+
+    private var testNow: Date {
+        Date(timeIntervalSince1970: 1_776_094_400)
+    }
+
+    private func rescheduledEdit(to date: Date) -> EventEdit {
+        EventEdit(title: "Rescheduled", emoji: "🎉", date: date, location: nil, notes: "New notes")
+    }
+
+    private func assertArchivedEdit(daysFromToday: Int) throws {
+        let calendar = testCalendar
+        let now = testNow
+        let today = calendar.startOfDay(for: now)
+        let target = try XCTUnwrap(calendar.date(byAdding: .day, value: daysFromToday, to: today))
+        let configuration = try makeStoreConfiguration()
+        let editedID = try withLocalStore(configuration) { context in
+            let event = Event(title: "Original", emoji: "🌙", date: today.addingTimeInterval(-1), location: "Old location")
+            event.isArchived = true
+            let older = Event(title: "Older Past", emoji: "🌙", date: today.addingTimeInterval(-3600))
+            older.isArchived = true
+            let newestPast = Event(title: "Newer Past", emoji: "🌙", date: today.addingTimeInterval(-0.5))
+            newestPast.isArchived = true
+            let early = Event(title: "Today", emoji: "☀️", date: today.addingTimeInterval(60))
+            let late = Event(title: "Later Future", emoji: "🌻", date: target.addingTimeInterval(3600))
+            for row in [event, older, newestPast, early, late] { context.insert(row) }
+            try context.save()
+            let model = EventListViewModel(modelContext: context, now: { now }, calendar: { calendar })
+            model.setFilter(.past)
+
+            try model.saveEdit(rescheduledEdit(to: target), for: event)
+
+            XCTAssertEqual(model.filter, .past)
+            XCTAssertEqual(model.events.map(\.id), [newestPast.id, older.id])
+            model.setFilter(.future)
+            let expectedOrder = daysFromToday == 0 ? [event.id, early.id, late.id] : [early.id, event.id, late.id]
+            XCTAssertEqual(model.events.map(\.id), expectedOrder)
+            return event.id
+        }
+
+        try withLocalStore(configuration) { context in
+            let events = try context.fetch(FetchDescriptor<Event>())
+            let edited = try XCTUnwrap(events.first { $0.id == editedID })
+            XCTAssertEqual(edited.title, "Rescheduled")
+            XCTAssertEqual(edited.emoji, "🎉")
+            XCTAssertEqual(edited.date, target)
+            XCTAssertNil(edited.location)
+            XCTAssertEqual(edited.notes, "New notes")
+            XCTAssertFalse(edited.isArchived)
+        }
+    }
+
+    private func withLocalStore<Result>(
+        _ configuration: ModelConfiguration,
+        _ work: (ModelContext) throws -> Result
+    ) throws -> Result {
+        let container = try ModelContainer(for: Event.self, configurations: configuration)
+        let context = ModelContext(container)
+        context.autosaveEnabled = false
+        return try work(context)
     }
 
     private func renderedImage(in window: UIWindow) -> UIImage {

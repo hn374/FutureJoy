@@ -66,6 +66,18 @@ enum EventListFilter: String, CaseIterable {
     }
 }
 
+struct EventEdit {
+    let title: String
+    let emoji: String
+    let date: Date
+    let location: String?
+    let notes: String?
+}
+
+enum EventEditError: Error {
+    case dateInPast
+}
+
 // Immutable wording and IDs for the operation the user is being asked to confirm.
 enum PendingEventDeletion: Equatable {
     case single(id: UUID, title: String)
@@ -96,7 +108,11 @@ enum PendingEventDeletion: Equatable {
 @MainActor
 final class EventListViewModel: ObservableObject {
     
-    private var modelContext: ModelContext
+    private let modelContext: ModelContext
+    private let now: () -> Date
+    private let calendar: () -> Calendar
+    private let save: (ModelContext) throws -> Void
+    private let fetchList: (ModelContext, FetchDescriptor<Event>) throws -> [Event]
     
     @Published var events: [Event] = []
     @Published var filter: EventListFilter = .future
@@ -106,11 +122,69 @@ final class EventListViewModel: ObservableObject {
     @Published var selectedEventIDs: Set<UUID> = []
     @Published var toast: ToastData?
     
-    init(modelContext: ModelContext) {
+    init(
+        modelContext: ModelContext,
+        now: @escaping () -> Date = { Date() },
+        calendar: @escaping () -> Calendar = { .current },
+        save: @escaping (ModelContext) throws -> Void = { try $0.save() },
+        fetchList: @escaping (ModelContext, FetchDescriptor<Event>) throws -> [Event] = { try $0.fetch($1) }
+    ) {
         self.modelContext = modelContext
+        self.now = now
+        self.calendar = calendar
+        self.save = save
+        self.fetchList = fetchList
         archivePastEvents()
     }
     
+    func saveEdit(_ edit: EventEdit, for event: Event) throws {
+        let today = calendar().startOfDay(for: now())
+        guard edit.date >= today else { throw EventEditError.dateInPast }
+
+        let overdue = try overdueEvents(before: today)
+            .filter { $0 !== event }
+            .map { (event: $0, wasArchived: $0.isArchived) }
+        let previousEdit = EventEdit(
+            title: event.title,
+            emoji: event.emoji,
+            date: event.date,
+            location: event.location,
+            notes: event.notes
+        )
+        let wasArchived = event.isArchived
+
+        apply(edit, to: event)
+        event.isArchived = false
+        for row in overdue {
+            row.event.isArchived = true
+        }
+
+        do {
+            try save(modelContext)
+        } catch {
+            apply(previousEdit, to: event)
+            event.isArchived = wasArchived
+            for row in overdue {
+                row.event.isArchived = row.wasArchived
+            }
+            throw error
+        }
+
+        do {
+            events = try loadEvents(for: filter)
+        } catch {
+            print("Failed to refresh events after saving: \(error)")
+        }
+    }
+
+    private func apply(_ edit: EventEdit, to event: Event) {
+        event.title = edit.title
+        event.emoji = edit.emoji
+        event.date = edit.date
+        event.location = edit.location
+        event.notes = edit.notes
+    }
+
     /// Updates the active filter and refreshes the list
     func setFilter(_ newFilter: EventListFilter) {
         guard !isSelectionMode, pendingDeletion == nil, newFilter != filter else { return }
@@ -120,48 +194,51 @@ final class EventListViewModel: ObservableObject {
     
     /// Fetches events for the current filter
     func fetchEvents(filter overrideFilter: EventListFilter? = nil) {
-        let activeFilter = overrideFilter ?? filter
-        let isArchivedValue = activeFilter.isArchived
-        let sort: SortDescriptor<Event> = SortDescriptor(\.date, order: activeFilter.sortOrder)
-        let descriptor = FetchDescriptor<Event>(
-            predicate: #Predicate<Event> { event in
-                event.isArchived == isArchivedValue
-            },
-            sortBy: [sort]
-        )
-        
         do {
-            events = try modelContext.fetch(descriptor)
+            events = try loadEvents(for: overrideFilter ?? filter)
         } catch {
             print("Failed to fetch events: \(error)")
             events = []
         }
     }
-    
-    /// Archives events that have passed
-    func archivePastEvents() {
-        let notArchived = false
-        let today = Calendar.current.startOfDay(for: Date())
+
+    private func loadEvents(for filter: EventListFilter) throws -> [Event] {
+        let isArchived = filter.isArchived
         let descriptor = FetchDescriptor<Event>(
             predicate: #Predicate<Event> { event in
-                event.isArchived == notArchived && event.date < today
-            }
+                event.isArchived == isArchived
+            },
+            sortBy: [SortDescriptor(\.date, order: filter.sortOrder)]
         )
-        
+        return try fetchList(modelContext, descriptor)
+    }
+
+    /// Archives events that have passed
+    func archivePastEvents() {
         do {
-            let pastEvents = try modelContext.fetch(descriptor)
+            let pastEvents = try overdueEvents(before: calendar().startOfDay(for: now()))
             for event in pastEvents {
                 event.isArchived = true
             }
             if !pastEvents.isEmpty {
-                try modelContext.save()
+                try save(modelContext)
             }
         } catch {
             print("Failed to archive past events: \(error)")
         }
         fetchEvents()
     }
-    
+
+    private func overdueEvents(before today: Date) throws -> [Event] {
+        let notArchived = false
+        let descriptor = FetchDescriptor<Event>(
+            predicate: #Predicate<Event> { event in
+                event.isArchived == notArchived && event.date < today
+            }
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
     /// Creates a new event
     @discardableResult
     func addEvent(

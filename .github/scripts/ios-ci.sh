@@ -52,6 +52,11 @@ with open(sys.argv[1]) as report:
     passed = set(passed_tests(json.load(report)["testNodes"]))
 # Required functional coverage; update this inventory when renaming/removing a test.
 required_unit_tests = {
+    "ForwardTests/EventListBehaviorTests/testArchivedEditToLaterDateMovesToFutureAndPersists",
+    "ForwardTests/EventListBehaviorTests/testArchivedEditToTodayMovesToFutureAndPersists",
+    "ForwardTests/EventListBehaviorTests/testEditBeforeTodayIsRejectedWithoutSaving",
+    "ForwardTests/EventListBehaviorTests/testFailedEditRestoresFieldsAndOverdueFlagsAndCanRetry",
+    "ForwardTests/EventListBehaviorTests/testFailedPostSaveListReadKeepsSnapshotUntilHomeRefresh",
     "ForwardTests/EventDeleteConfirmationTests/testSingleFreezesIDAndTitle",
     "ForwardTests/EventDeleteConfirmationTests/testBulkFreezesIDsDespiteSelectionChanges",
     "ForwardTests/EventDeleteConfirmationTests/testOneSelectedEventKeepsBulkCopy",
