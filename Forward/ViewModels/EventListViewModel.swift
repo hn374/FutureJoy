@@ -138,7 +138,7 @@ final class EventListViewModel: ObservableObject {
     }
     
     func saveEdit(_ edit: EventEdit, for event: Event) throws {
-        let today = calendar().startOfDay(for: now())
+        let today = EventCalendarDay.startOfToday(now: now(), calendar: calendar())
         guard edit.date >= today else { throw EventEditError.dateInPast }
 
         let overdue = try overdueEvents(before: today)
@@ -216,7 +216,7 @@ final class EventListViewModel: ObservableObject {
     /// Archives events that have passed
     func archivePastEvents() {
         do {
-            let pastEvents = try overdueEvents(before: calendar().startOfDay(for: now()))
+            let pastEvents = try overdueEvents(before: EventCalendarDay.startOfToday(now: now(), calendar: calendar()))
             for event in pastEvents {
                 event.isArchived = true
             }

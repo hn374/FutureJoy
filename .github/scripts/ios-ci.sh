@@ -52,6 +52,8 @@ with open(sys.argv[1]) as report:
     passed = set(passed_tests(json.load(report)["testNodes"]))
 # Required functional coverage; update this inventory when renaming/removing a test.
 required_unit_tests = {
+    "ForwardTests/EventDraftLifecycleTests/testPreparedLegacyEditMovesListsAndPersists",
+    "ForwardTests/EventDraftLifecycleTests/testLifecycleRejectsPreparedEditAfterCalendarDayChanges",
     "ForwardTests/EventListBehaviorTests/testArchivedEditToLaterDateMovesToFutureAndPersists",
     "ForwardTests/EventListBehaviorTests/testArchivedEditToTodayMovesToFutureAndPersists",
     "ForwardTests/EventListBehaviorTests/testEditBeforeTodayIsRejectedWithoutSaving",
@@ -66,6 +68,16 @@ required_unit_tests = {
     "ForwardTests/EventDeleteConfirmationTests/testDuplicateRequestsAndRepeatedConfirmationAreHarmless",
     "ForwardTests/EventDeleteConfirmationTests/testCanceledAndStaleCallbacksCannotExecuteOrClearNewRequest",
     "ForwardTests/EventDeleteConfirmationTests/testSelectionTransitionsInvalidatePendingAndTabsStayBlocked",
+    "ForwardTests/EventDraftTests/testNormalizesTitleAndOptionalFields",
+    "ForwardTests/EventDraftTests/testRejectsWhitespaceOnlyTitles",
+    "ForwardTests/EventDraftTests/testCreationDefaultsBlankEmoji",
+    "ForwardTests/EventDraftTests/testUntouchedEditingPreservesStoredEmoji",
+    "ForwardTests/EventDraftTests/testTouchedEditingNormalizesAndRejectsBlankEmoji",
+    "ForwardTests/EventDraftTests/testPreparationKeepsCompleteCharacters",
+    "ForwardTests/EventDraftTests/testValidationPrecedence",
+    "ForwardTests/EventDraftTests/testSavePreparationRechecksCurrentDay",
+    "ForwardTests/EventCalendarDayTests/testTodayAcceptsEarlierTimeAndRejectsYesterday",
+    "ForwardTests/EventCalendarDayTests/testCalendarDayBoundariesAcrossTimeZonesDSTLeapAndYear",
     "ForwardTests/EventListBehaviorTests/testEventCardsTruncateLongTitlesAndKeepMetadataReadable",
     "ForwardTests/EventListBehaviorTests/testTenThousandEventsRemainCompleteThroughMutationAndFilterChanges",
     "ForwardTests/EventListBehaviorTests/testBulkSelectionSurvivesRefreshAndDeletesOnlySelectedEvents",

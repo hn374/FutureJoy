@@ -475,12 +475,18 @@ struct EventDetailView: View {
     }
     
     // MARK: - Editing Helpers
-    private var minimumDate: Date {
-        Calendar.current.startOfDay(for: Date())
+    private var draft: EventDraft {
+        EventDraft(
+            title: editedTitle,
+            emoji: editedEmoji,
+            date: editedDate,
+            location: editedLocation,
+            notes: editedNotes
+        )
     }
-    
-    private var isDateValid: Bool {
-        Calendar.current.startOfDay(for: editedDate) >= minimumDate
+
+    private var minimumDate: Date {
+        EventCalendarDay.startOfToday(now: Date(), calendar: .current)
     }
     
     private func handleEditTapped() {
@@ -511,38 +517,30 @@ struct EventDetailView: View {
     }
     
     private func saveChanges() {
-        guard isDateValid else {
-            alertMessage = "Event date cannot be in the past."
-            return
-        }
-        
-        let trimmedTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Preserve legacy selections when only unrelated fields were edited.
-        let emoji = hasEditedEmoji ? EventEmojiInput.limit(editedEmoji) : event.emoji
-        let trimmedLocation = editedLocation.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedNotes = editedNotes.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        guard trimmedTitle.isEmpty == false else {
-            alertMessage = "Event name cannot be empty."
-            return
-        }
-        
-        guard emoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false else {
-            alertMessage = "Please add an emoji."
-            return
-        }
-        
-        let edit = EventEdit(
-            title: trimmedTitle,
-            emoji: emoji,
-            date: editedDate,
-            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
-            notes: trimmedNotes.isEmpty ? nil : trimmedNotes
-        )
-
         do {
+            let fields = try draft.prepare(
+                for: .editing(originalEmoji: event.emoji, emojiWasEdited: hasEditedEmoji),
+                now: Date(),
+                calendar: .current
+            )
+            let edit = EventEdit(
+                title: fields.title,
+                emoji: fields.emoji,
+                date: fields.date,
+                location: fields.location,
+                notes: fields.notes
+            )
             try saveEdit(edit, event)
             isEditing = false
+        } catch let error as EventDraftValidationError {
+            switch error {
+            case .pastDate:
+                alertMessage = "Event date cannot be in the past."
+            case .emptyTitle:
+                alertMessage = "Event name cannot be empty."
+            case .emptyEmoji:
+                alertMessage = "Please add an emoji."
+            }
         } catch EventEditError.dateInPast {
             alertMessage = "Event date cannot be in the past."
         } catch {
