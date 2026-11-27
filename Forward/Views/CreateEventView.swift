@@ -10,12 +10,14 @@ import SwiftData
 import UIKit
 
 struct CreateEventView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject var viewModel: EventListViewModel
     var onClose: () -> Void = {}
     @State private var title: String = ""
     @State private var selectedEmoji: String = "🎉"
     @State private var date: Date = Date()
     @State private var datePickerID = UUID()
+    @State private var showingDatePicker = false
     @State private var location: String = ""
     @State private var notes: String = ""
     
@@ -82,6 +84,9 @@ struct CreateEventView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
         }
+        .sheet(isPresented: $showingDatePicker) {
+            datePickerSheet
+        }
         .presentationBackground(.clear)
         .preferredColorScheme(.light)
     }
@@ -113,12 +118,12 @@ struct CreateEventView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.32))
                 if required {
                     Text("*").foregroundColor(.red)
                 }
             }
+            .font(.system(size: 15, weight: .semibold))
             
             HStack(spacing: systemImage == nil ? 0 : 10) {
                 if let systemImage {
@@ -143,28 +148,40 @@ struct CreateEventView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Text("Event Date")
-                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.32))
                 Text("*").foregroundColor(.red)
             }
+            .font(.system(size: 15, weight: .semibold))
             
-            HStack(spacing: 10) {
-                Image(systemName: "calendar")
-                    .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.6))
-                
-                DatePicker(
-                    "Select a date",
-                    selection: $date,
-                    in: Date()...,
-                    displayedComponents: [.date]
-                )
-                .id(datePickerID)
-                .labelsHidden()
-                .tint(Color(red: 0.45, green: 0.40, blue: 0.95))
-                .datePickerStyle(.compact)
-                .onChange(of: date) { _ in
-                    dismissDatePicker()
-                    datePickerID = UUID() // force rebuild to close popover
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    Button {
+                        dismissKeyboard()
+                        showingDatePicker = true
+                    } label: {
+                        Text(date, format: .dateTime.day().month(.abbreviated).year())
+                            .font(.body)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Select a date")
+                    .accessibilityValue(Text(date, format: .dateTime.day().month(.wide).year()))
+                } else {
+                    HStack(spacing: 10) {
+                        Image(systemName: "calendar")
+                            .foregroundColor(Color(red: 0.55, green: 0.55, blue: 0.6))
+
+                        eventDatePicker
+                            .datePickerStyle(.compact)
+                            .id(datePickerID)
+                            .onChange(of: date) {
+                                dismissKeyboard()
+                                datePickerID = UUID() // force rebuild to close popover
+                            }
+                    }
                 }
             }
             .padding()
@@ -178,7 +195,37 @@ struct CreateEventView: View {
         }
     }
     
-    private func dismissDatePicker() {
+    private var eventDatePicker: some View {
+        DatePicker(
+            "Select a date",
+            selection: $date,
+            in: EventCalendarDay.startOfToday(now: Date(), calendar: .current)...,
+            displayedComponents: [.date]
+        )
+        .labelsHidden()
+        .tint(Color(red: 0.45, green: 0.40, blue: 0.95))
+    }
+
+    private var datePickerSheet: some View {
+        NavigationStack {
+            ScrollView {
+                eventDatePicker
+                    .datePickerStyle(.graphical)
+                    .frame(maxWidth: 400)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+            }
+            .navigationTitle("Event Date")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { showingDatePicker = false }
+                }
+            }
+        }
+    }
+
+    private func dismissKeyboard() {
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder),
             to: nil,

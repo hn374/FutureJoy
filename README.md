@@ -38,6 +38,8 @@ selection mode. An inline **Add New Event** button also appears when Future has
 no events, even if Past contains events; it disappears after the first creation
 and returns after the last Future event is removed. Past retains its distinct
 empty-state message. Both Add controls open the same creation form.
+At accessibility text sizes, the date can wrap in the form. Tap it to open the
+calendar, choose a date, and tap **Done** to return to the draft.
 Tap **Forward** to return the current list to the top. Use **Select** on the left
 for bulk deletion; selection mode shows **Cancel**, **Trash**, and **Add**.
 Opening, cancelling, or saving creation preserves the active tab and selections.
