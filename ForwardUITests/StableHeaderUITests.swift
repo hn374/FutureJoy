@@ -86,11 +86,11 @@ final class StableHeaderUITests: XCTestCase {
             let add = app.buttons["Add New Event"]
             if !add.isHittable { app.scrollViews.firstMatch.swipeUp() }
             add.tap()
-            let name = app.textFields["Birthday Party"]
+            let name = app.textFields["event-creation-name"]
             XCTAssertTrue(name.waitForExistence(timeout: 5))
             name.tap()
             name.typeText("Header anchor event")
-            if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+            app.buttons["Hide Keyboard"].tap()
             let save = app.buttons["Create Event"]
             if !save.isHittable { app.swipeUp() }
             save.tap()
@@ -113,9 +113,9 @@ final class StableHeaderUITests: XCTestCase {
             XCTAssertFalse(add.frame.intersects(trash.frame), "Add must not expose the Trash button's frame")
             for point in [CGVector(dx: 0.5, dy: 0.5), CGVector(dx: 0.1, dy: 0.1)] {
                 add.coordinate(withNormalizedOffset: point).tap()
-                let field = app.textFields["Birthday Party"]
+                let field = app.textFields["event-creation-name"]
                 XCTAssertTrue(field.waitForExistence(timeout: 5))
-                app.buttons["Close"].tap()
+                app.buttons["cancel-event-creation"].tap()
                 XCTAssertTrue(field.waitForNonExistence(timeout: 5))
                 XCTAssertTrue(app.staticTexts["0 selected"].exists)
             }

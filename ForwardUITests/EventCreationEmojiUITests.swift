@@ -89,17 +89,20 @@ final class EventCreationEmojiUITests: XCTestCase {
 
     func testCreationRequiresNonblankTitleAndEnablesForToday() {
         app.buttons["Add New Event"].tap()
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         let create = app.buttons["Create Event"]
         XCTAssertFalse(create.isEnabled)
         name.tap()
         name.typeText("   ")
-        XCTAssertFalse(create.isEnabled)
-        name.typeText("Cancelled valid draft")
-        XCTAssertTrue(create.isEnabled, "Today's initial date must be accepted")
         dismissKeyboard()
-        app.buttons["xmark"].tap()
+        XCTAssertFalse(create.isEnabled)
+
+        name.tap()
+        name.typeText("Cancelled valid draft")
+        dismissKeyboard()
+        XCTAssertTrue(create.isEnabled, "Today's initial date must be accepted")
+        app.buttons["cancel-event-creation"].tap()
         XCTAssertTrue(app.buttons["Add New Event"].isEnabled)
         XCTAssertFalse(card("Cancelled valid draft").exists)
         XCTAssertEqual(app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Delete '")).count, 0)
@@ -110,11 +113,11 @@ final class EventCreationEmojiUITests: XCTestCase {
         let title = "Draft fields \(suffix)"
         let updatedTitle = "Updated draft \(suffix)"
         app.buttons["Add New Event"].tap()
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("  \(title)  ")
-        let location = app.textFields["New York, NY"]
+        let location = app.textFields["event-creation-location"]
         reveal(location)
         location.tap()
         location.typeText("  New York, NY  ")
@@ -122,8 +125,7 @@ final class EventCreationEmojiUITests: XCTestCase {
         reveal(notes)
         notes.tap()
         notes.typeText("  first\n\nsecond  ")
-        // Tapping a non-text control dismisses the multiline editor's keyboard.
-        app.staticTexts["Create New Event"].tap()
+        dismissKeyboard()
         saveAndAssertCard(title, emoji: "🎉")
 
         relaunchEmptyProfile()
@@ -174,7 +176,7 @@ final class EventCreationEmojiUITests: XCTestCase {
     private func openCreation(titlePrefix: String = "Emoji QA") -> String {
         let title = "\(titlePrefix) \(UUID().uuidString.prefix(8))"
         app.buttons["Add New Event"].tap()
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText(title)
@@ -191,7 +193,10 @@ final class EventCreationEmojiUITests: XCTestCase {
         if !current.isEmpty && current != field.placeholderValue {
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
         }
-        let empty = NSPredicate(format: "value == '' OR value == placeholderValue")
+        let empty = NSPredicate { _, _ in
+            let value = field.value as? String
+            return field.exists && (value == nil || value == "" || value == field.placeholderValue)
+        }
         expectation(for: empty, evaluatedWith: field)
         waitForExpectations(timeout: 3)
         if !text.isEmpty {
@@ -226,10 +231,8 @@ final class EventCreationEmojiUITests: XCTestCase {
     }
 
     private func dismissKeyboard() {
-        let returnKey = app.keyboards.buttons["Return"]
-        if returnKey.exists {
-            returnKey.tap()
-        }
+        let hideKeyboard = app.buttons["Hide Keyboard"]
+        if hideKeyboard.exists { hideKeyboard.tap() }
     }
 
     private func reveal(_ element: XCUIElement) {
@@ -261,6 +264,7 @@ final class EventCreationEmojiUITests: XCTestCase {
     }
 
     private func saveAndAssertCard(_ title: String, emoji: String) {
+        dismissKeyboard()
         createdTitles.append(title)
         app.buttons["Create Event"].tap()
         assertCard(title, emoji: emoji)

@@ -139,11 +139,11 @@ final class ListSwitchingUITests: XCTestCase {
             app.buttons["Scroll to top"].tap()
             assertAtTop(firstFuture, relativeTo: futureTop)
             app.buttons["Add New Event"].tap()
-            let name = app.textFields["Birthday Party"]
+            let name = app.textFields["event-creation-name"]
             XCTAssertTrue(name.waitForExistence(timeout: 5))
             name.tap()
             name.typeText("Scroll coverage event \(index)")
-            if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+            app.buttons["Hide Keyboard"].tap()
             app.buttons["Create Event"].tap()
             XCTAssertTrue(name.waitForNonExistence(timeout: 5))
         }
