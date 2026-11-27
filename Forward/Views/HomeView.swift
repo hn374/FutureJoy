@@ -151,7 +151,7 @@ struct HomeView: View {
             .clipShape(
                 RoundedCornerShape(corners: [.bottomLeft, .bottomRight], radius: 16)
             )
-            .ignoresSafeArea(edges: [.top, .trailing])
+            .ignoresSafeArea(edges: [.top, .horizontal])
         }
     }
 
