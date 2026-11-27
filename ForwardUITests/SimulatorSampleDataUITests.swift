@@ -22,11 +22,11 @@ final class SimulatorSampleDataUITests: XCTestCase {
         selectProfile("Empty")
         XCTAssertFalse(card("Stargazing picnic").exists)
         app.buttons["Add New Event"].tap()
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("Empty profile addition")
-        if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+        app.buttons["Hide Keyboard"].tap()
         app.buttons["Create Event"].tap()
         XCTAssertTrue(card("Empty profile addition").waitForExistence(timeout: 5))
         attachScreenshot("Empty profile with a saved addition")
@@ -104,12 +104,11 @@ final class SimulatorSampleDataUITests: XCTestCase {
         app.launchArguments = []
         app.launch()
         app.buttons["Add New Event"].tap()
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText(title)
-        let returnKey = app.keyboards.buttons["Return"]
-        if returnKey.exists { returnKey.tap() }
+        app.buttons["Hide Keyboard"].tap()
         app.buttons["Create Event"].tap()
         XCTAssertTrue(card(title).waitForExistence(timeout: 5))
 

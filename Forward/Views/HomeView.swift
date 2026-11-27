@@ -48,30 +48,17 @@ struct HomeView: View {
                         .id(viewModel.filter)
                     }
                 }
+                .accessibilityHidden(viewModel.showingCreateEvent)
             }
-            .disabled(viewModel.showingCreateEvent)
-            .accessibilityHidden(viewModel.showingCreateEvent)
-            .overlay(alignment: .center) {
-                if viewModel.showingCreateEvent {
-                    ZStack {
-                        Color.black.opacity(0.35)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                viewModel.showingCreateEvent = false
-                            }
-
-                        CreateEventView(
-                            viewModel: viewModel,
-                            onClose: { viewModel.showingCreateEvent = false }
-                        )
-                        .frame(maxWidth: 540)
-                        .padding(.horizontal, 24)
-                        .transition(.scale)
-                        .zIndex(1)
-                    }
-                }
+            .sheet(isPresented: $viewModel.showingCreateEvent) {
+                CreateEventView(
+                    viewModel: viewModel,
+                    onClose: { viewModel.showingCreateEvent = false }
+                )
+                .presentationSizing(.form)
+                .presentationBackground(Color(.systemBackground))
+                .interactiveDismissDisabled()
             }
-            .animation(.easeInOut, value: viewModel.showingCreateEvent)
             .overlay(alignment: .bottom) {
                 toastOverlay
             }

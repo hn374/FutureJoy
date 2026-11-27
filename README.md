@@ -38,8 +38,11 @@ selection mode. An inline **Add New Event** button also appears when Future has
 no events, even if Past contains events; it disappears after the first creation
 and returns after the last Future event is removed. Past retains its distinct
 empty-state message. Both Add controls open the same creation form.
-At accessibility text sizes, the date can wrap in the form. Tap it to open the
-calendar, choose a date, and tap **Done** to return to the draft.
+The creation form has one scrolling column that grows with Dynamic Type. Tap
+**Event Date** to open the calendar in the same sheet, choose a date, and tap
+**Done** to return to the draft. While editing text, use **Hide Keyboard** to
+return to the form actions. **Create Event** saves the draft, and **Cancel**
+closes the sheet without saving.
 Tap **Forward** to return the current list to the top. Use **Select** on the left
 for bulk deletion; selection mode shows **Cancel**, **Trash**, and **Add**.
 Opening, cancelling, or saving creation preserves the active tab and selections.
@@ -220,6 +223,11 @@ Motion → Reduce Motion enabled. On a physical device, also use VoiceOver to
 activate the title (VoiceOver is unavailable in Simulator).
 Confirm the first event is fully visible, selection survives, and switching
 tabs still resets to the destination's top.
+Run `EventCreationAccessibilityUITests` for creation and calendar coverage at
+standard and largest Dynamic Type. On iPhone Duo, run the suite on the iOS 27.2
+SDK in both the Closed and Open poses. Check the active display before each run
+and use Device Hub to fold and unfold with the same keyboard or calendar open.
+Verify that the draft text and selected date survive a round trip.
 Other UI cases and template UI launch/performance tests are outside this initial gate.
 Simulator boot overlaps the build; the script waits for boot to finish before
 starting tests. Tests run serially on one simulator. The script checks the results

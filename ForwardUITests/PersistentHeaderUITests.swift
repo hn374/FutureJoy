@@ -83,7 +83,7 @@ final class PersistentHeaderUITests: XCTestCase {
         launch(profile: "empty")
         XCTAssertTrue(addEvent.waitForExistence(timeout: 10))
         tapEdge(addEvent)
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("Persistent header event")
@@ -150,7 +150,7 @@ final class PersistentHeaderUITests: XCTestCase {
         XCTAssertTrue(titleButton.label.contains("Forward"))
         tapEdge(titleButton)
         tapEdge(addEvent)
-        XCTAssertTrue(app.textFields["Birthday Party"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["event-creation-name"].waitForExistence(timeout: 5))
         closeCreation()
         tapEdge(app.buttons["Select"])
         XCTAssertTrue(app.staticTexts["0 selected"].exists)
@@ -189,7 +189,7 @@ final class PersistentHeaderUITests: XCTestCase {
         XCTAssertTrue(addEvent.isHittable)
         attach("Empty Future with both Add controls")
         tapEdge(inline)
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("First future event")
@@ -221,7 +221,7 @@ final class PersistentHeaderUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["1 selected"].exists)
         XCTAssertTrue(app.buttons["Trash"].isEnabled)
         tapEdge(addEvent)
-        let name = app.textFields["Birthday Party"]
+        let name = app.textFields["event-creation-name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("Created from Past")
@@ -246,7 +246,7 @@ final class PersistentHeaderUITests: XCTestCase {
     }
 
     private func fillDraftAndClose() {
-        let field = app.textFields["Birthday Party"]
+        let field = app.textFields["event-creation-name"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("Cancelled header draft")
@@ -255,11 +255,11 @@ final class PersistentHeaderUITests: XCTestCase {
     }
 
     private func closeCreation() {
-        let close = app.buttons["Close"]
+        let close = app.buttons["cancel-event-creation"]
         XCTAssertTrue(close.waitForExistence(timeout: 5))
         XCTAssertTrue(close.isHittable)
         close.tap()
-        XCTAssertTrue(app.textFields["Birthday Party"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["event-creation-name"].waitForNonExistence(timeout: 5))
     }
 
     private func tapEdge(_ button: XCUIElement) {
@@ -272,7 +272,7 @@ final class PersistentHeaderUITests: XCTestCase {
     }
 
     private func dismissKeyboard() {
-        if app.keyboards.buttons["Return"].exists { app.keyboards.buttons["Return"].tap() }
+        app.buttons["Hide Keyboard"].tap()
     }
 
     private func visibleCard() -> XCUIElement {
